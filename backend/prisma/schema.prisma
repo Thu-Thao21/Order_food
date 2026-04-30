@@ -67,6 +67,29 @@ model CallRequest {
   createdAt DateTime @default(now())
 }
 
+model PaymentRequest {
+  id        Int      @id @default(autoincrement())
+  method    String   // 'cash', 'transfer', 'card'
+  note      String?
+  status    String   @default("pending") // pending, completed, cancelled
+  createdAt DateTime @default(now())
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  stars     Int      // 1-5
+  note      String?
+  status    String   @default("pending") // pending, reviewed
+  createdAt DateTime @default(now())
+}
+
+model StaffCall {
+  id        Int      @id @default(autoincrement())
+  message   String?
+  status    String   @default("pending") // pending, completed
+  createdAt DateTime @default(now())
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   username  String   @unique

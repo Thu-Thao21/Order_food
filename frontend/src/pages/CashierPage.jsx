@@ -2,14 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
-import { ADMIN_ORDERS_API, SOCKET_URL, API_BASE_URL } from '../config/api';
+import { ADMIN_ORDERS_API, SOCKET_URL, API_BASE_URL, PAYMENT_REQUEST_API, STAFF_CALL_API } from '../config/api';
 
 export default function CashierPage() {
   const [orders, setOrders] = useState([]);
   const [completedOrders, setCompletedOrders] = useState([]);
+  const [paymentRequests, setPaymentRequests] = useState([]);
+  const [staffCalls, setStaffCalls] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [requestLoading, setRequestLoading] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeTab, setActiveTab] = useState('waiting');
@@ -18,6 +21,8 @@ export default function CashierPage() {
   useEffect(() => {
     loadOrders();
     loadCompletedOrders();
+    loadPaymentRequests();
+    loadStaffCalls();
     
     // Connect to Socket.io
     const socket = io(SOCKET_URL, {
@@ -36,15 +41,49 @@ export default function CashierPage() {
       }
     });
 
+    socket.on('payment-request-created', (newRequest) => {
+      setPaymentRequests((prev) => [newRequest, ...prev]);
+    });
+
+    socket.on('payment-request-updated', (updatedRequest) => {
+      if (updatedRequest.status !== 'pending') {
+        setPaymentRequests((prev) => prev.filter((item) => item.id !== updatedRequest.id));
+        return;
+      }
+      setPaymentRequests((prev) =>
+        prev.map((item) => (item.id === updatedRequest.id ? updatedRequest : item))
+      );
+    });
+
+    socket.on('staff-call-created', (newCall) => {
+      setStaffCalls((prev) => [newCall, ...prev]);
+    });
+
+    socket.on('staff-call-updated', (updatedCall) => {
+      if (updatedCall.status !== 'pending') {
+        setStaffCalls((prev) => prev.filter((item) => item.id !== updatedCall.id));
+        return;
+      }
+      setStaffCalls((prev) =>
+        prev.map((item) => (item.id === updatedCall.id ? updatedCall : item))
+      );
+    });
+
     // Polling every 3 seconds as backup
     const interval = setInterval(() => {
       loadOrders();
       loadCompletedOrders();
+      loadPaymentRequests();
+      loadStaffCalls();
     }, 3000);
 
     return () => {
       clearInterval(interval);
       socket.off('order-status-update');
+      socket.off('payment-request-created');
+      socket.off('payment-request-updated');
+      socket.off('staff-call-created');
+      socket.off('staff-call-updated');
       socket.disconnect();
     };
   }, []);
@@ -72,6 +111,57 @@ export default function CashierPage() {
       setCompletedOrders(response.data || []);
     } catch (error) {
       console.error('Error loading completed orders:', error);
+    }
+  };
+
+  const loadPaymentRequests = async () => {
+    try {
+      const response = await axios.get(PAYMENT_REQUEST_API.GET_ALL);
+      setPaymentRequests(response.data || []);
+    } catch (error) {
+      console.error('Error loading payment requests:', error);
+    }
+  };
+
+  const loadStaffCalls = async () => {
+    try {
+      const response = await axios.get(STAFF_CALL_API.GET_ALL);
+      setStaffCalls(response.data || []);
+    } catch (error) {
+      console.error('Error loading staff calls:', error);
+    }
+  };
+
+  const getMethodLabel = (method) => {
+    if (method === 'cash') return '💵 Tiền Mặt';
+    if (method === 'transfer') return '🏦 Chuyển Khoản';
+    if (method === 'card') return '💳 Quẹt Thẻ';
+    return method;
+  };
+
+  const updatePaymentRequestStatus = async (id, status) => {
+    try {
+      setRequestLoading(id);
+      await axios.put(PAYMENT_REQUEST_API.UPDATE_STATUS(id), { status });
+      setPaymentRequests((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      alert('Lỗi cập nhật yêu cầu thanh toán');
+      console.error('Error updating payment request:', error);
+    } finally {
+      setRequestLoading(null);
+    }
+  };
+
+  const updateStaffCallStatus = async (id, status) => {
+    try {
+      setRequestLoading(id);
+      await axios.put(STAFF_CALL_API.UPDATE_STATUS(id), { status });
+      setStaffCalls((prev) => prev.filter((item) => item.id !== id));
+    } catch (error) {
+      alert('Lỗi cập nhật yêu cầu gọi nhân viên');
+      console.error('Error updating staff call:', error);
+    } finally {
+      setRequestLoading(null);
     }
   };
 
@@ -264,10 +354,156 @@ export default function CashierPage() {
               fontFamily: '"Times New Roman", Times, serif'
             }}
           >
-            Hoàn Thành ({completedOrders.length})
+            Đã Thanh Toán ({completedOrders.length})
           </button>
         </div>
       </div>
+
+      {activeTab === 'waiting' && (
+        <>
+          <div style={{ background: '#fff', border: '2px solid #ff910015', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+        <h2 style={{ color: '#ff9100', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+          Yêu Cầu Gọi Nhân Viên ({staffCalls.length})
+        </h2>
+        <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {staffCalls.length === 0 ? (
+            <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu gọi nhân viên</p>
+          ) : (
+            staffCalls.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  border: '1px solid #fccaa6',
+                  borderLeft: '4px solid #ff9100',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  background: '#fffdf8'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
+                    {item.message && (
+                      <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.message}</div>
+                    )}
+                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
+                      {new Date(item.createdAt).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => updateStaffCallStatus(item.id, 'completed')}
+                      disabled={requestLoading === item.id}
+                      style={{
+                        padding: '8px 12px',
+                        background: '#10b981',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                        opacity: requestLoading === item.id ? 0.7 : 1,
+                        fontWeight: 600
+                      }}
+                    >
+                      Xong
+                    </button>
+                    <button
+                      onClick={() => updateStaffCallStatus(item.id, 'cancelled')}
+                      disabled={requestLoading === item.id}
+                      style={{
+                        padding: '8px 12px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                        opacity: requestLoading === item.id ? 0.7 : 1,
+                        fontWeight: 600
+                      }}
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+        <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+          Yêu Cầu Thanh Toán Từ Khách ({paymentRequests.length})
+        </h2>
+        <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {paymentRequests.length === 0 ? (
+            <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu thanh toán mới</p>
+          ) : (
+            paymentRequests.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  border: '1px solid #f3d4bd',
+                  borderLeft: '4px solid #e85d04',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  background: '#fffaf6'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
+                    {item.note && (
+                      <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.note}</div>
+                    )}
+                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
+                      {new Date(item.createdAt).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => updatePaymentRequestStatus(item.id, 'completed')}
+                      disabled={requestLoading === item.id}
+                      style={{
+                        padding: '8px 12px',
+                        background: '#10b981',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                        opacity: requestLoading === item.id ? 0.7 : 1,
+                        fontWeight: 600
+                      }}
+                    >
+                      Xác Nhận
+                    </button>
+                    <button
+                      onClick={() => updatePaymentRequestStatus(item.id, 'cancelled')}
+                      disabled={requestLoading === item.id}
+                      style={{
+                        padding: '8px 12px',
+                        background: '#ef4444',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                        opacity: requestLoading === item.id ? 0.7 : 1,
+                        fontWeight: 600
+                      }}
+                    >
+                      Hủy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+          </div>
+        </>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Danh sách Orders */}

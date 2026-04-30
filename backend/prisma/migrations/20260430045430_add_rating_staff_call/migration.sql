@@ -1,0 +1,16 @@
+-- CreateTable
+CREATE TABLE "Rating" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "stars" INTEGER NOT NULL,
+    "note" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateTable
+CREATE TABLE "StaffCall" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "message" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

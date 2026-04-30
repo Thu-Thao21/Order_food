@@ -6,7 +6,7 @@ import AdminLayout from '../components/AdminLayout';
 import EmployeeManager from '../components/EmployeeManager';
 import AdminMenuQR from './AdminMenuQR';
 import CashierPage from './CashierPage';
-import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL } from '../config/api';
+import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL, RATING_API } from '../config/api';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
@@ -29,6 +29,24 @@ export default function AdminDashboard({ onLogout }) {
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [inventorySearch, setInventorySearch] = useState('');
+
+  // --- RATINGS STATES ---
+  const [ratings, setRatings] = useState([]);
+  const [ratingsLoading, setRatingsLoading] = useState(false);
+  const [ratingActionLoading, setRatingActionLoading] = useState(null);
+
+  // Load ratings function
+  const loadRatings = async () => {
+    try {
+      setRatingsLoading(true);
+      const response = await axios.get(RATING_API.GET_ALL);
+      setRatings(response.data || []);
+    } catch (error) {
+      console.error('Error loading ratings:', error);
+    } finally {
+      setRatingsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'dashboard';
@@ -94,6 +112,10 @@ export default function AdminDashboard({ onLogout }) {
       );
     });
 
+    socket.on('new-rating', (newRating) => {
+      setRatings((prev) => [newRating, ...prev]);
+    });
+
     socket.on('connect_error', (error) => {
       console.warn('Socket.io connection error:', error);
     });
@@ -101,9 +123,15 @@ export default function AdminDashboard({ onLogout }) {
     return () => {
       socket.off('new-order');
       socket.off('order-status-update');
+      socket.off('new-rating');
       socket.off('connect_error');
       socket.disconnect();
     };
+  }, []);
+
+  // Load ratings on component mount
+  useEffect(() => {
+    loadRatings();
   }, []);
 
   // Load menu items để quản lý hàng
@@ -440,6 +468,123 @@ export default function AdminDashboard({ onLogout }) {
     </>
   );
 
+  const updateRatingStatus = async (id, status) => {
+    try {
+      setRatingActionLoading(id);
+      await axios.put(RATING_API.UPDATE_STATUS(id), { status });
+      setRatings((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+    } catch (error) {
+      alert('Lỗi cập nhật đánh giá');
+      console.error('Error updating rating:', error);
+    } finally {
+      setRatingActionLoading(null);
+    }
+  };
+
+  const renderRatings = () => {
+    return (
+      <div style={{ padding: '24px', fontFamily: '"Times New Roman", Times, serif' }}>
+        <h1 style={{ margin: '0 0 24px 0', color: '#e85d04', fontSize: '2rem' }}>Quản Lý Đánh Giá</h1>
+        
+        {ratingsLoading ? (
+          <div style={{ textAlign: 'center', padding: '50px 20px', color: '#999' }}>
+            <p>Đang tải dữ liệu...</p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '20px'
+          }}>
+            {ratings.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px 20px', color: '#999' }}>
+                <p style={{ fontSize: '1.05rem' }}>Chưa có đánh giá nào</p>
+              </div>
+            ) : (
+              ratings.map((rating) => (
+                <div
+                  key={rating.id}
+                  style={{
+                    background: '#fff',
+                    border: rating.status === 'pending' ? '2px solid #fca5a5' : '2px solid #86efac',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                  }}
+                >
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
+                      {'⭐'.repeat(rating.stars)}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#999' }}>
+                      Đánh giá #{rating.id}
+                    </div>
+                  </div>
+
+                  {rating.note && (
+                    <div style={{
+                      background: '#f5f5f5',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      marginBottom: '12px',
+                      fontSize: '0.95rem',
+                      color: '#555'
+                    }}>
+                      {rating.note}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: '0.85rem', color: '#999', marginBottom: '12px' }}>
+                    {new Date(rating.createdAt).toLocaleString('vi-VN')}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {rating.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => updateRatingStatus(rating.id, 'reviewed')}
+                          disabled={ratingActionLoading === rating.id}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: ratingActionLoading === rating.id ? 'not-allowed' : 'pointer',
+                            opacity: ratingActionLoading === rating.id ? 0.7 : 1,
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          ✓ Đã Xem
+                        </button>
+                      </>
+                    )}
+                    {rating.status === 'reviewed' && (
+                      <div style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        background: '#10b981',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                      }}>
+                        ✓ Đã Xem
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <AdminLayout title="Admin" onLogout={onLogout}>
       <div style={tabsContainerStyle}>
@@ -468,6 +613,12 @@ export default function AdminDashboard({ onLogout }) {
           Nhân viên
         </button>
         <button
+          onClick={() => setActiveTab('ratings')}
+          style={tabButtonStyle(activeTab === 'ratings')}
+        >
+          ⭐ Đánh Giá
+        </button>
+        <button
           onClick={() => setActiveTab('menuqr')}
           style={tabButtonStyle(activeTab === 'menuqr')}
         >
@@ -485,6 +636,7 @@ export default function AdminDashboard({ onLogout }) {
           <EmployeeManager />
         </div>
       )}
+      {activeTab === 'ratings' && renderRatings()}
       {activeTab === 'menuqr' && (
         <AdminMenuQR />
       )}

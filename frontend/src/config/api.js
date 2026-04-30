@@ -59,6 +59,27 @@ export const ADMIN_DASHBOARD_API = {
   GET_REVENUE_SUMMARY: `${API_BASE_URL}/admin/revenue/summary`,
 };
 
+// ===== PAYMENT REQUEST APIs (Home, CashierPage) =====
+export const PAYMENT_REQUEST_API = {
+  GET_ALL: `${API_BASE_URL}/payment-requests`,
+  CREATE: `${API_BASE_URL}/payment-requests`,
+  UPDATE_STATUS: (id) => `${API_BASE_URL}/payment-requests/${id}`,
+};
+
+// ===== RATING APIs (Home, AdminDashboard) =====
+export const RATING_API = {
+  GET_ALL: `${API_BASE_URL}/ratings`,
+  CREATE: `${API_BASE_URL}/ratings`,
+  UPDATE_STATUS: (id) => `${API_BASE_URL}/ratings/${id}`,
+};
+
+// ===== STAFF CALL APIs (Home, CashierPage, AdminDashboard) =====
+export const STAFF_CALL_API = {
+  GET_ALL: `${API_BASE_URL}/staff-calls`,
+  CREATE: `${API_BASE_URL}/staff-calls`,
+  UPDATE_STATUS: (id) => `${API_BASE_URL}/staff-calls/${id}`,
+};
+
 // ===== API ENDPOINTS SUMMARY =====
 export const API_ENDPOINTS = {
   // Authentication

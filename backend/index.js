@@ -496,6 +496,187 @@ app.get('/api/admin/tables', async (req, res) => {
   res.json(tables);
 });
 
+// === API THANH TOÁN ===
+// Lấy danh sách yêu cầu thanh toán (cho quầy)
+app.get('/api/payment-requests', async (req, res) => {
+  try {
+    const paymentRequests = await prisma.paymentRequest.findMany({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(paymentRequests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tạo yêu cầu thanh toán mới
+app.post('/api/payment-requests', async (req, res) => {
+  try {
+    const { method, note } = req.body;
+    
+    if (!method || !['cash', 'transfer', 'card'].includes(method)) {
+      return res.status(400).json({ error: 'Phương thức thanh toán không hợp lệ' });
+    }
+    
+    const paymentRequest = await prisma.paymentRequest.create({
+      data: {
+        method,
+        note: note || '',
+        status: 'pending'
+      }
+    });
+    
+    // Emit event to notify cashier via Socket.io
+    io.emit('payment-request-created', paymentRequest);
+    
+    res.json({ message: 'Yêu cầu thanh toán đã được tạo', data: paymentRequest });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Hoàn thành yêu cầu thanh toán
+app.put('/api/payment-requests/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    }
+    
+    const paymentRequest = await prisma.paymentRequest.update({
+      where: { id: Number(id) },
+      data: { status }
+    });
+    
+    // Emit event to notify
+    io.emit('payment-request-updated', paymentRequest);
+    
+    res.json({ message: 'Cập nhật trạng thái thành công', data: paymentRequest });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// === API ĐÁNH GIÁ ===
+// Lấy danh sách đánh giá (cho admin)
+app.get('/api/ratings', async (req, res) => {
+  try {
+    const ratings = await prisma.rating.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(ratings);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tạo đánh giá mới
+app.post('/api/ratings', async (req, res) => {
+  try {
+    const { stars, note } = req.body;
+    
+    if (!stars || stars < 1 || stars > 5) {
+      return res.status(400).json({ error: 'Đánh giá phải từ 1-5 sao' });
+    }
+    
+    const rating = await prisma.rating.create({
+      data: {
+        stars: Number(stars),
+        note: note || '',
+        status: 'pending'
+      }
+    });
+    
+    // Emit event to notify admin via Socket.io
+    io.emit('new-rating', rating);
+    
+    res.json({ message: 'Đánh giá đã được lưu', data: rating });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Cập nhật trạng thái đánh giá
+app.put('/api/ratings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const rating = await prisma.rating.update({
+      where: { id: Number(id) },
+      data: { status }
+    });
+    
+    io.emit('rating-updated', rating);
+    
+    res.json({ message: 'Cập nhật thành công', data: rating });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// === API GỌI NHÂN VIÊN ===
+// Lấy danh sách yêu cầu gọi nhân viên (cho quầy)
+app.get('/api/staff-calls', async (req, res) => {
+  try {
+    const calls = await prisma.staffCall.findMany({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(calls);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tạo yêu cầu gọi nhân viên
+app.post('/api/staff-calls', async (req, res) => {
+  try {
+    const { message } = req.body;
+    
+    const staffCall = await prisma.staffCall.create({
+      data: {
+        message: message || '',
+        status: 'pending'
+      }
+    });
+    
+    // Emit event to notify staff via Socket.io
+    io.emit('staff-call-created', staffCall);
+    
+    res.json({ message: 'Yêu cầu gọi nhân viên đã được gửi', data: staffCall });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Hoàn thành yêu cầu gọi nhân viên
+app.put('/api/staff-calls/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    }
+    
+    const staffCall = await prisma.staffCall.update({
+      where: { id: Number(id) },
+      data: { status }
+    });
+    
+    // Emit event to notify
+    io.emit('staff-call-updated', staffCall);
+    
+    res.json({ message: 'Cập nhật trạng thái thành công', data: staffCall });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // === SOCKET.IO ===
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

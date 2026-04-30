@@ -53,7 +53,8 @@ function App() {
           <Route path="/admin/qr" element={<Navigate to="/admin?tab=menuqr" replace />} />
         </Route>
 
-        <Route path="/table/:tableId" element={<TableMenu />} />
+        <Route path="/table/:tableId" element={<Home onLogin={handleLogin} />} />
+        <Route path="/table/:tableId/menu" element={<TableMenu />} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
