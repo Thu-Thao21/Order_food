@@ -3,8 +3,15 @@
 const PRODUCTION_URL = 'https://vannthangg.onrender.com';
 
 const getBaseUrl = () => {
+  // Kiểm tra nếu đang chạy trên tên miền của Render
+  if (window.location.hostname === 'order-food-frontend.onrender.com' || 
+      window.location.hostname.includes('onrender.com')) {
+    return PRODUCTION_URL; // Sẽ trả về https://vannthangg.onrender.com
+  }
+  
+  // Các trường hợp test dưới máy tính
   if (window.location.hostname === 'localhost') return 'http://localhost:3000';
-  return PRODUCTION_URL;
+  return `http://${window.location.hostname}:3000`;
 };
 
 export const SOCKET_URL = getBaseUrl();

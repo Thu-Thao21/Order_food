@@ -374,11 +374,18 @@ export default function Home({ onLogin }) {
   };
 
   const handleStaffSubmit = async () => {
+    // Ràng buộc: Phải quét QR mới được gọi nhân viên
+    if (!tableId) {
+      alert('Vui lòng quét QR tại bàn để sử dụng tính năng này!');
+      return;
+    }
+
     try {
       const response = await fetch(STAFF_CALL_API.CREATE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          tableId: Number(tableId), // Gửi kèm ID bàn
           message: staffMessage
         })
       });
@@ -396,6 +403,12 @@ export default function Home({ onLogin }) {
   };
 
   const handleRatingSubmit = async () => {
+    // Ràng buộc: Phải quét QR mới được đánh giá (nếu bạn muốn)
+    if (!tableId) {
+      alert('Vui lòng quét QR tại bàn để sử dụng tính năng này!');
+      return;
+    }
+
     if (rating === 0) {
       alert('Vui lòng chọn đánh giá!');
       return;
@@ -406,6 +419,7 @@ export default function Home({ onLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          tableId: Number(tableId), // Gửi kèm ID bàn
           stars: rating
         })
       });
@@ -423,6 +437,12 @@ export default function Home({ onLogin }) {
   };
 
   const handlePaymentSubmit = async () => {
+    // Ràng buộc: Phải quét QR mới được gọi thanh toán
+    if (!tableId) {
+      alert('Vui lòng quét QR tại bàn để sử dụng tính năng này!');
+      return;
+    }
+
     if (!paymentMethod) {
       alert('Vui lòng chọn phương thức thanh toán!');
       return;
@@ -433,6 +453,7 @@ export default function Home({ onLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          tableId: Number(tableId), // Gửi kèm ID bàn
           method: paymentMethod,
           note: paymentNote
         })
@@ -450,7 +471,6 @@ export default function Home({ onLogin }) {
       alert('Lỗi gửi yêu cầu, vui lòng thử lại!');
     }
   };
-
   return (
     <div style={styles.page}>
       {/* HEADER TOP */}

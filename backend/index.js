@@ -128,49 +128,28 @@ app.post('/api/order', async (req, res) => {
 
     const order = await prisma.order.create({
       data: {
-        tableId,
+        tableId: Number(tableId), // Đảm bảo là kiểu số
         status: 'pending',
         orderType: orderType || 'dine-in',
         paymentStatus: 'unpaid',
         total,
         items: { create: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note })) }
-      },
-      include: { items: { include: { menuItem: true } }, table: true }
+      }
     });
 
-    console.log('✅ Đơn hàng mới:', order.id, 'từ bàn', order.table?.name);
-    // Thông báo cho Bếp + Admin qua Socket.io
-    io.emit('new-order', order);
-    res.status(201).json(order);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Cập nhật trạng thái thanh toán
-app.put('/api/orders/:id/payment', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { paymentStatus, paymentMethod } = req.body;
-
-    const order = await prisma.order.update({
-      where: { id: Number(id) },
-      data: {
-        paymentStatus: paymentStatus || 'paid',
-        paymentMethod: paymentMethod || 'cash',
-        status: paymentStatus === 'paid' ? 'completed' : 'pending'
-      },
+    // Lấy đầy đủ thông tin để ném qua Socket cho Quầy/Bếp hiện đủ tên món
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: order.id },
       include: { table: true, items: { include: { menuItem: true } } }
     });
 
-    // Thông báo cập nhật
-    io.emit('order-paid', order);
-    res.json(order);
+    console.log('✅ Đơn hàng mới:', fullOrder.id);
+    io.emit('new-order', fullOrder); // Phát tín hiệu cho các màn hình khác
+    res.status(201).json(fullOrder);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-
 
 // === API CHO ADMIN ===
 
