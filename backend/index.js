@@ -492,14 +492,18 @@ app.get('/api/payment-requests', async (req, res) => {
 // Tạo yêu cầu thanh toán mới
 app.post('/api/payment-requests', async (req, res) => {
   try {
-    const { method, note } = req.body;
+    const { method, note, tableId } = req.body;
     
     if (!method || !['cash', 'transfer', 'card'].includes(method)) {
       return res.status(400).json({ error: 'Phương thức thanh toán không hợp lệ' });
     }
+    if (!tableId) {
+      return res.status(400).json({ error: 'Thiếu thông tin bàn' });
+    }
     
     const paymentRequest = await prisma.paymentRequest.create({
       data: {
+        tableId: tableId ? Number(tableId) : null,
         method,
         note: note || '',
         status: 'pending'
@@ -544,6 +548,7 @@ app.put('/api/payment-requests/:id', async (req, res) => {
 app.get('/api/ratings', async (req, res) => {
   try {
     const ratings = await prisma.rating.findMany({
+      include: { table: true },
       orderBy: { createdAt: 'desc' }
     });
     res.json(ratings);
@@ -555,14 +560,18 @@ app.get('/api/ratings', async (req, res) => {
 // Tạo đánh giá mới
 app.post('/api/ratings', async (req, res) => {
   try {
-    const { stars, note } = req.body;
+    const { stars, note, tableId } = req.body;
     
     if (!stars || stars < 1 || stars > 5) {
       return res.status(400).json({ error: 'Đánh giá phải từ 1-5 sao' });
     }
+    if (!tableId) {
+      return res.status(400).json({ error: 'Thiếu thông tin bàn' });
+    }
     
     const rating = await prisma.rating.create({
       data: {
+        tableId: tableId ? Number(tableId) : null,
         stars: Number(stars),
         note: note || '',
         status: 'pending'
@@ -602,7 +611,8 @@ app.put('/api/ratings/:id', async (req, res) => {
 app.get('/api/staff-calls', async (req, res) => {
   try {
     const calls = await prisma.staffCall.findMany({
-      where: { status: 'pending' },
+      include: { table: true },
+      where: { status: 'pending', tableId: { not: null } },
       orderBy: { createdAt: 'desc' }
     });
     res.json(calls);
@@ -614,13 +624,19 @@ app.get('/api/staff-calls', async (req, res) => {
 // Tạo yêu cầu gọi nhân viên
 app.post('/api/staff-calls', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, tableId } = req.body;
+
+    if (!tableId) {
+      return res.status(400).json({ error: 'Thiếu thông tin bàn' });
+    }
     
     const staffCall = await prisma.staffCall.create({
       data: {
+        tableId: tableId ? Number(tableId) : null,
         message: message || '',
         status: 'pending'
-      }
+      },
+      include: { table: true }
     });
     
     // Emit event to notify staff via Socket.io
@@ -707,6 +723,11 @@ io.on('connection', (socket) => {
     try {
       const { tableId, type } = data;
 
+      if (!tableId) {
+        socket.emit('call-error', 'Thiếu thông tin bàn');
+        return;
+      }
+
       // Tạo yêu cầu gọi
       const callRequest = await prisma.callRequest.create({
         data: {
@@ -724,6 +745,17 @@ io.on('connection', (socket) => {
 
       // Broadcast cho nhân viên/admin
       io.emit('staff-called', callRequest);
+
+      const staffCall = await prisma.staffCall.create({
+        data: {
+          tableId: Number(tableId),
+          message: type || 'general',
+          status: 'pending'
+        },
+        include: { table: true }
+      });
+
+      io.emit('staff-call-created', staffCall);
     } catch (error) {
       console.error('Lỗi gọi nhân viên:', error);
       socket.emit('call-error', 'Không thể gửi yêu cầu. Vui lòng thử lại.');

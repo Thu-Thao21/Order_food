@@ -327,6 +327,14 @@ export default function Home({ onLogin }) {
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(''); // 'cash', 'transfer', 'card'
 
+  const tableLabel = tableId ? (tableName || `Bàn ${tableId}`) : '';
+
+  const withTableLabel = (text) => {
+    if (!tableLabel) return (text || '').trim();
+    const cleanText = (text || '').trim();
+    return cleanText ? `${tableLabel} | ${cleanText}` : tableLabel;
+  };
+
   useEffect(() => {
     if (tableId) {
       const fetchTableInfo = async () => {
@@ -386,7 +394,7 @@ export default function Home({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableId: Number(tableId), // Gửi kèm ID bàn
-          message: staffMessage
+          message: withTableLabel(staffMessage)
         })
       });
       
@@ -420,7 +428,8 @@ export default function Home({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tableId: Number(tableId), // Gửi kèm ID bàn
-          stars: rating
+          stars: rating,
+          note: tableLabel
         })
       });
       
@@ -455,7 +464,7 @@ export default function Home({ onLogin }) {
         body: JSON.stringify({
           tableId: Number(tableId), // Gửi kèm ID bàn
           method: paymentMethod,
-          note: paymentNote
+          note: withTableLabel(paymentNote)
         })
       });
       

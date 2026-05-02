@@ -35,6 +35,13 @@ export default function AdminDashboard({ onLogout }) {
   const [ratingsLoading, setRatingsLoading] = useState(false);
   const [ratingActionLoading, setRatingActionLoading] = useState(null);
 
+  const parseTableLabel = (entry) => {
+    if (entry?.table?.name) return entry.table.name;
+    const raw = entry?.note || entry?.message || '';
+    const match = raw.match(/^([^|]+?)\s*\|/);
+    return match ? match[1].trim() : null;
+  };
+
   // Load ratings function
   const loadRatings = async () => {
     try {
@@ -518,6 +525,9 @@ export default function AdminDashboard({ onLogout }) {
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#999' }}>
                       Đánh giá #{rating.id}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#e85d04', fontWeight: 700 }}>
+                      Bàn: {parseTableLabel(rating) || `#${rating.tableId || 'N/A'}`}
                     </div>
                   </div>
 

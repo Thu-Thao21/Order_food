@@ -18,6 +18,13 @@ export default function CashierPage() {
   const [activeTab, setActiveTab] = useState('waiting');
   const qrRef = useRef();
 
+  const parseTableLabel = (item) => {
+    if (item?.table?.name) return item.table.name;
+    const raw = item?.message || item?.note || '';
+    const match = raw.match(/^([^|]+?)\s*\|/);
+    return match ? match[1].trim() : null;
+  };
+
   useEffect(() => {
     loadOrders();
     loadCompletedOrders();
@@ -38,7 +45,25 @@ export default function CashierPage() {
       if (updatedOrder.status === 'completed') {
         setOrders((prev) => prev.filter((o) => o.id !== updatedOrder.id));
         setCompletedOrders((prev) => [updatedOrder, ...prev]);
+      } else {
+        setOrders((prev) => {
+          const exists = prev.some((o) => o.id === updatedOrder.id);
+          if (exists) {
+            return prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o));
+          }
+          return [updatedOrder, ...prev];
+        });
       }
+    });
+
+    socket.on('new-order', (newOrder) => {
+      console.log('📦 Đơn mới nhận được (Cashier):', newOrder);
+      setOrders((prev) => {
+        if (prev.some((order) => order.id === newOrder.id)) {
+          return prev;
+        }
+        return [newOrder, ...prev];
+      });
     });
 
     socket.on('payment-request-created', (newRequest) => {
@@ -56,7 +81,12 @@ export default function CashierPage() {
     });
 
     socket.on('staff-call-created', (newCall) => {
-      setStaffCalls((prev) => [newCall, ...prev]);
+      setStaffCalls((prev) => {
+        if (prev.some((item) => item.id === newCall.id)) {
+          return prev.map((item) => (item.id === newCall.id ? newCall : item));
+        }
+        return [newCall, ...prev];
+      });
     });
 
     socket.on('staff-call-updated', (updatedCall) => {
@@ -79,6 +109,7 @@ export default function CashierPage() {
 
     return () => {
       clearInterval(interval);
+      socket.off('new-order');
       socket.off('order-status-update');
       socket.off('payment-request-created');
       socket.off('payment-request-updated');
@@ -98,8 +129,17 @@ export default function CashierPage() {
 
   const loadOrders = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/admin/orders/waiting-payment`);
-      setOrders(response.data || []);
+      const [pendingRes, waitingPaymentRes] = await Promise.all([
+        axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS),
+        axios.get(`${API_BASE_URL}/admin/orders/waiting-payment`)
+      ]);
+
+      const mergedOrders = [...(pendingRes.data || []), ...(waitingPaymentRes.data || [])];
+      const uniqueOrders = Array.from(
+        new Map(mergedOrders.map((order) => [order.id, order])).values()
+      );
+
+      setOrders(uniqueOrders);
     } catch (error) {
       console.error('Error loading orders:', error);
     }
@@ -383,6 +423,9 @@ export default function CashierPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e85d04', fontWeight: 700 }}>
+                      Bàn: {parseTableLabel(item) || `#${item.tableId || 'N/A'}`}
+                    </div>
                     <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
                     {item.message && (
                       <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.message}</div>
@@ -454,6 +497,9 @@ export default function CashierPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#e85d04', fontWeight: 700 }}>
+                      Bàn: {parseTableLabel(item) || `#${item.tableId || 'N/A'}`}
+                    </div>
                     <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
                     {item.note && (
                       <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.note}</div>
