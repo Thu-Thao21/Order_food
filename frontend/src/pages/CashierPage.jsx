@@ -382,7 +382,9 @@ export default function CashierPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                      Yêu cầu #{item.id} {item.table && `- ${item.table.name}`}
+                    </div>
                     <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
                     {item.message && (
                       <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.message}</div>
@@ -453,7 +455,9 @@ export default function CashierPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>Yêu cầu #{item.id}</div>
+                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                      Yêu cầu #{item.id} {item.table && `- ${item.table.name}`}
+                    </div>
                     <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
                     {item.note && (
                       <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.note}</div>

@@ -502,7 +502,8 @@ app.get('/api/payment-requests', async (req, res) => {
   try {
     const paymentRequests = await prisma.paymentRequest.findMany({
       where: { status: 'pending' },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { table: true }
     });
     res.json(paymentRequests);
   } catch (error) {
@@ -513,7 +514,7 @@ app.get('/api/payment-requests', async (req, res) => {
 // Tạo yêu cầu thanh toán mới
 app.post('/api/payment-requests', async (req, res) => {
   try {
-    const { method, note } = req.body;
+    const { method, note, tableId } = req.body;
     
     if (!method || !['cash', 'transfer', 'card'].includes(method)) {
       return res.status(400).json({ error: 'Phương thức thanh toán không hợp lệ' });
@@ -523,8 +524,10 @@ app.post('/api/payment-requests', async (req, res) => {
       data: {
         method,
         note: note || '',
-        status: 'pending'
-      }
+        status: 'pending',
+        tableId: tableId ? Number(tableId) : null
+      },
+      include: { table: true }
     });
     
     // Emit event to notify cashier via Socket.io
@@ -548,7 +551,8 @@ app.put('/api/payment-requests/:id', async (req, res) => {
     
     const paymentRequest = await prisma.paymentRequest.update({
       where: { id: Number(id) },
-      data: { status }
+      data: { status },
+      include: { table: true }
     });
     
     // Emit event to notify
@@ -565,7 +569,8 @@ app.put('/api/payment-requests/:id', async (req, res) => {
 app.get('/api/ratings', async (req, res) => {
   try {
     const ratings = await prisma.rating.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { table: true }
     });
     res.json(ratings);
   } catch (error) {
@@ -576,7 +581,7 @@ app.get('/api/ratings', async (req, res) => {
 // Tạo đánh giá mới
 app.post('/api/ratings', async (req, res) => {
   try {
-    const { stars, note } = req.body;
+    const { stars, note, tableId } = req.body;
     
     if (!stars || stars < 1 || stars > 5) {
       return res.status(400).json({ error: 'Đánh giá phải từ 1-5 sao' });
@@ -586,8 +591,10 @@ app.post('/api/ratings', async (req, res) => {
       data: {
         stars: Number(stars),
         note: note || '',
-        status: 'pending'
-      }
+        status: 'pending',
+        tableId: tableId ? Number(tableId) : null
+      },
+      include: { table: true }
     });
     
     // Emit event to notify admin via Socket.io
@@ -607,7 +614,8 @@ app.put('/api/ratings/:id', async (req, res) => {
     
     const rating = await prisma.rating.update({
       where: { id: Number(id) },
-      data: { status }
+      data: { status },
+      include: { table: true }
     });
     
     io.emit('rating-updated', rating);
@@ -624,7 +632,8 @@ app.get('/api/staff-calls', async (req, res) => {
   try {
     const calls = await prisma.staffCall.findMany({
       where: { status: 'pending' },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { table: true }
     });
     res.json(calls);
   } catch (error) {
@@ -635,13 +644,15 @@ app.get('/api/staff-calls', async (req, res) => {
 // Tạo yêu cầu gọi nhân viên
 app.post('/api/staff-calls', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, tableId } = req.body;
     
     const staffCall = await prisma.staffCall.create({
       data: {
         message: message || '',
-        status: 'pending'
-      }
+        status: 'pending',
+        tableId: tableId ? Number(tableId) : null
+      },
+      include: { table: true }
     });
     
     // Emit event to notify staff via Socket.io
@@ -665,7 +676,8 @@ app.put('/api/staff-calls/:id', async (req, res) => {
     
     const staffCall = await prisma.staffCall.update({
       where: { id: Number(id) },
-      data: { status }
+      data: { status },
+      include: { table: true }
     });
     
     // Emit event to notify

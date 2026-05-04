@@ -379,7 +379,8 @@ export default function Home({ onLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: staffMessage
+          message: staffMessage,
+          tableId: tableId ? Number(tableId) : null
         })
       });
       
@@ -406,7 +407,8 @@ export default function Home({ onLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stars: rating
+          stars: rating,
+          tableId: tableId ? Number(tableId) : null
         })
       });
       
@@ -434,7 +436,8 @@ export default function Home({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           method: paymentMethod,
-          note: paymentNote
+          note: paymentNote,
+          tableId: tableId ? Number(tableId) : null
         })
       });
       
