@@ -328,6 +328,15 @@ export default function Home({ onLogin }) {
   const [staffMessage, setStaffMessage] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(''); // 'cash', 'transfer', 'card'
+  
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState('success');
+
+  const showToast = (msg, type = 'success') => {
+    setToastMessage(msg);
+    setToastType(type);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
 
   useEffect(() => {
     if (tableId) {
@@ -390,18 +399,18 @@ export default function Home({ onLogin }) {
       if (!response.ok) throw new Error('Failed to submit staff call');
       
       console.log('Gọi nhân viên:', staffMessage);
-      alert('Yêu cầu gọi nhân viên đã được gửi!');
+      showToast('Yêu cầu gọi nhân viên đã được gửi!');
       setShowStaffModal(false);
       setStaffMessage('');
     } catch (error) {
       console.error('Error:', error);
-      alert('Lỗi gửi yêu cầu, vui lòng thử lại!');
+      showToast('Lỗi gửi yêu cầu, vui lòng thử lại!', 'error');
     }
   };
 
   const handleRatingSubmit = async () => {
     if (rating === 0) {
-      alert('Vui lòng chọn đánh giá!');
+      showToast('Vui lòng chọn đánh giá!', 'error');
       return;
     }
     
@@ -420,18 +429,18 @@ export default function Home({ onLogin }) {
       if (!response.ok) throw new Error('Failed to submit rating');
       
       console.log('Đánh giá:', rating);
-      alert(`Cảm ơn bạn đã đánh giá ${rating} sao!`);
+      showToast(`Cảm ơn bạn đã đánh giá ${rating} sao!`);
       setShowRatingModal(false);
       setRating(0);
     } catch (error) {
       console.error('Error:', error);
-      alert('Lỗi gửi đánh giá, vui lòng thử lại!');
+      showToast('Lỗi gửi đánh giá, vui lòng thử lại!', 'error');
     }
   };
 
   const handlePaymentSubmit = async () => {
     if (!paymentMethod) {
-      alert('Vui lòng chọn phương thức thanh toán!');
+      showToast('Vui lòng chọn phương thức thanh toán!', 'error');
       return;
     }
     
@@ -450,18 +459,41 @@ export default function Home({ onLogin }) {
       if (!response.ok) throw new Error('Failed to submit payment request');
       
       console.log('Gọi thanh toán:', { method: paymentMethod, note: paymentNote });
-      alert(`Yêu cầu thanh toán bằng ${paymentMethod === 'cash' ? 'tiền mặt' : paymentMethod === 'transfer' ? 'chuyển khoản' : 'quẹt thẻ'} đã được gửi!`);
+      showToast(`Yêu cầu thanh toán bằng ${paymentMethod === 'cash' ? 'tiền mặt' : paymentMethod === 'transfer' ? 'chuyển khoản' : 'quẹt thẻ'} đã được gửi!`);
       setShowPaymentModal(false);
       setPaymentNote('');
       setPaymentMethod('');
     } catch (error) {
       console.error('Error:', error);
-      alert('Lỗi gửi yêu cầu, vui lòng thử lại!');
+      showToast('Lỗi gửi yêu cầu, vui lòng thử lại!', 'error');
     }
   };
 
   return (
     <div style={styles.page}>
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toastType === 'error' ? '#ef4444' : '#10b981',
+          color: '#fff',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'slideDown 0.3s ease-out'
+        }}>
+          {toastType === 'error' ? '❌' : '✅'} {toastMessage}
+        </div>
+      )}
+
       {/* HEADER TOP */}
       <div style={{ background: '#e85d04', color: '#fff', padding: '10px 20px', fontSize: '0.85rem', textAlign: 'center' }}>
         ☎️ 0788606420 | 📧 THTeam@gmail.com

@@ -365,8 +365,13 @@ export default function KitchenView({ onLogout }) {
                     </div>
 
                     <div style={styles.body}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                        <span style={styles.statusTag}>{order.status?.toUpperCase() || 'PENDING'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <span style={styles.statusTag}>{order.status?.toUpperCase() || 'PENDING'}</span>
+                          <span style={{...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6'}}>
+                            {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                          </span>
+                        </div>
                         <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
 

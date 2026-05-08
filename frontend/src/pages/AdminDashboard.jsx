@@ -298,40 +298,7 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </section>
 
-      {/* Đơn hàng gần đây */}
-      {recentOrders.length > 0 && (
-        <section style={{ background: '#fff', padding: '28px', borderRadius: '12px', marginBottom: '28px', border: '2px solid #e85d0420', boxShadow: '0 4px 12px rgba(232, 93, 4, 0.08)' }}>
-          <h2 style={{ color: '#e85d04', margin: '0 0 20px 0', fontSize: '1.4rem', fontWeight: '800', fontFamily: '"Times New Roman", Times, serif' }}>Đơn hàng gần đây</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '12px' }}>
-            {recentOrders.map((order, idx) => (
-              <div key={idx} style={{
-                background: '#f5f5f5',
-                border: '1px solid #e5e5e5',
-                padding: '18px',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#fff';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.borderColor = '#e85d04';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f5f5f5';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.borderColor = '#e5e5e5';
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')}</span>
-                  <span style={{ background: '#e85d04', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>Chờ</span>
-                </div>
-                <p style={{ color: '#666', margin: 0, fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{order.items?.length || 0} món</p>
-                <p style={{ color: '#e85d04', margin: '10px 0 0', fontSize: '1.1rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{formatCurrency(order.totalAmount || 0)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+
     </>
   );
 

@@ -9,6 +9,7 @@ export default function CashierPage() {
   const [completedOrders, setCompletedOrders] = useState([]);
   const [paymentRequests, setPaymentRequests] = useState([]);
   const [staffCalls, setStaffCalls] = useState([]);
+  const [pendingOrders, setPendingOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ export default function CashierPage() {
     loadCompletedOrders();
     loadPaymentRequests();
     loadStaffCalls();
+    loadPendingOrders();
     
     // Connect to Socket.io
     const socket = io(SOCKET_URL, {
@@ -43,12 +45,24 @@ export default function CashierPage() {
       reconnectionAttempts: 5
     });
 
+    socket.on('new-order', (newOrder) => {
+      setPendingOrders((prev) => [newOrder, ...prev].slice(0, 10));
+    });
+
     // Listen for order status updates
     socket.on('order-status-update', (updatedOrder) => {
       console.log('🔄 Cập nhật đơn:', updatedOrder);
       if (updatedOrder.status === 'completed') {
         setOrders((prev) => prev.filter((o) => o.id !== updatedOrder.id));
         setCompletedOrders((prev) => [updatedOrder, ...prev]);
+      }
+      if (['pending', 'Pending', 'Processing', 'processing', 'ready', 'Ready', 'cooking', 'Cooking'].includes(updatedOrder.status)) {
+        setPendingOrders((prev) => {
+          if (!prev.find(o => o.id === updatedOrder.id)) return [updatedOrder, ...prev].slice(0, 10);
+          return prev.map((o) => o.id === updatedOrder.id ? updatedOrder : o);
+        });
+      } else {
+        setPendingOrders((prev) => prev.filter((o) => o.id !== updatedOrder.id));
       }
     });
 
@@ -86,10 +100,12 @@ export default function CashierPage() {
       loadCompletedOrders();
       loadPaymentRequests();
       loadStaffCalls();
+      loadPendingOrders();
     }, 3000);
 
     return () => {
       clearInterval(interval);
+      socket.off('new-order');
       socket.off('order-status-update');
       socket.off('payment-request-created');
       socket.off('payment-request-updated');
@@ -140,6 +156,15 @@ export default function CashierPage() {
       setStaffCalls(response.data || []);
     } catch (error) {
       console.error('Error loading staff calls:', error);
+    }
+  };
+
+  const loadPendingOrders = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/orders/pending`);
+      setPendingOrders((response.data || []).slice(0, 10));
+    } catch (error) {
+      console.error('Error loading pending orders:', error);
     }
   };
 
@@ -516,6 +541,43 @@ export default function CashierPage() {
             ))
           )}
         </div>
+          </div>
+          
+          <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+            <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+              Đơn Đang Xử Lý Bếp ({pendingOrders.length})
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '12px' }}>
+              {pendingOrders.map((order, idx) => (
+                <div key={idx} style={{
+                  background: '#f5f5f5',
+                  border: '1px solid #e5e5e5',
+                  padding: '18px',
+                  borderRadius: '8px',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.borderColor = '#e85d04';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#f5f5f5';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = '#e5e5e5';
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')}</span>
+                    <span style={{ background: '#e85d04', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{order.status?.toUpperCase() || 'CHỜ'}</span>
+                  </div>
+                  <p style={{ color: '#666', margin: 0, fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{order.items?.length || 0} món</p>
+                  <p style={{ color: '#e85d04', margin: '10px 0 0', fontSize: '1.1rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{(order.total || 0).toLocaleString('vi-VN')} đ</p>
+                </div>
+              ))}
+              {pendingOrders.length === 0 && (
+                <p style={{ color: '#999', padding: '10px', margin: 0 }}>Không có đơn đang chờ bếp</p>
+              )}
+            </div>
           </div>
         </>
       )}
