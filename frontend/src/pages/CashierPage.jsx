@@ -219,7 +219,6 @@ export default function CashierPage({ initialTab = 'waiting' }) {
       });
       loadCompletedOrders();
       setSelectedOrder(prev => ({ ...prev, status: 'completed', paymentMethod: method }));
-      alert(`Thanh toán thành công bằng ${method === 'cash' ? 'tiền mặt' : 'mã QR'}!`);
     } catch (error) {
       alert('Lỗi thanh toán: ' + error.message);
     } finally {
@@ -357,6 +356,101 @@ export default function CashierPage({ initialTab = 'waiting' }) {
     printWindow.document.write(billContent);
     printWindow.document.close();
     setTimeout(() => printWindow.print(), 250);
+  };
+
+  const renderBillPreview = (order) => {
+    const padId = String(order.id).padStart(6, '0');
+    const orderDate = new Date(order.createdAt);
+    const day = String(orderDate.getDate()).padStart(2, '0');
+    const month = String(orderDate.getMonth() + 1).padStart(2, '0');
+    const year = orderDate.getFullYear();
+
+    return (
+      <div style={{
+        background: '#fff',
+        color: '#000',
+        padding: '20px 10px',
+        fontFamily: '"Courier New", Courier, monospace',
+        fontSize: '14px',
+        lineHeight: '1.4',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        marginBottom: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+        width: '100%',
+        maxWidth: '350px',
+        margin: '0 auto 16px'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px' }}>CÔNG TY TNHH TMDV<br/>NHÀ HÀNG ẨM THỰC</div>
+          <div style={{ margin: '2px 0' }}>ĐC: 479 Trần Cao Vân, Thanh Khê,<br/>Đà Nẵng</div>
+          
+          <div style={{ fontWeight: 'bold', fontSize: '18px', margin: '15px 0 5px' }}>HÓA ĐƠN BÁN HÀNG</div>
+          <div style={{ margin: '2px 0' }}>Số HĐ: HD{padId}</div>
+          <div style={{ margin: '2px 0' }}>Ngày {day} tháng {month} năm {year}</div>
+          <div style={{ margin: '2px 0' }}>SĐT: 078.860.6420</div>
+        </div>
+
+        <div style={{ marginTop: '15px' }}>
+          <div style={{ margin: '2px 0' }}>Khách hàng: Khách lẻ - Bàn: {order.tableName || order.table?.name || ''}</div>
+          <div style={{ margin: '2px 0' }}>SĐT:</div>
+          <div style={{ margin: '2px 0' }}>Địa chỉ: - -</div>
+        </div>
+
+        <div style={{ borderTop: '1px solid #000', margin: '5px 0' }}></div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', borderBottom: '1px solid #000', paddingBottom: '5px', fontWeight: 'normal', width: '40%' }}>Đơn giá</th>
+              <th style={{ textAlign: 'center', borderBottom: '1px solid #000', paddingBottom: '5px', fontWeight: 'normal', width: '20%' }}>SL</th>
+              <th style={{ textAlign: 'right', borderBottom: '1px solid #000', paddingBottom: '5px', fontWeight: 'normal', width: '40%' }}>Thành tiền</th>
+            </tr>
+          </thead>
+        </table>
+        <div style={{ borderTop: '1px solid #000', margin: '5px 0' }}></div>
+
+        <div>
+          {order.items.map(item => (
+            <div key={item.id} style={{ marginBottom: '5px' }}>
+              <div style={{ paddingBottom: '2px' }}>{item.menuItem.name}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ width: '40%', textAlign: 'left' }}>{item.menuItem.price.toLocaleString('vi-VN')}</div>
+                <div style={{ width: '20%', textAlign: 'center' }}>{item.quantity}</div>
+                <div style={{ width: '40%', textAlign: 'right' }}>{(item.menuItem.price * item.quantity).toLocaleString('vi-VN')}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ borderTop: '1px dashed #000', margin: '10px 0' }}></div>
+
+        <div style={{ marginTop: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '3px 0', gap: '10px' }}>
+            <div style={{ textAlign: 'right', width: '60%' }}>Tổng tiền hàng:</div>
+            <div style={{ textAlign: 'right', width: '40%' }}>{order.total.toLocaleString('vi-VN')}</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '3px 0', gap: '10px' }}>
+            <div style={{ textAlign: 'right', width: '60%' }}>Chiết khấu:</div>
+            <div style={{ textAlign: 'right', width: '40%' }}>0</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '3px 0', gap: '10px', fontWeight: 'bold', fontSize: '15px', marginTop: '5px' }}>
+            <div style={{ textAlign: 'right', width: '60%' }}>Tổng thanh toán:</div>
+            <div style={{ textAlign: 'right', width: '40%' }}>{order.total.toLocaleString('vi-VN')}</div>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '5px', fontStyle: 'italic', color: '#555' }}>
+            (Đã bao gồm VAT)
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', letterSpacing: '2px', marginBottom: '10px' }}>VIETQR</div>
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=ThanhToanHoaDonHD${padId}`} alt="QR Code" style={{ width: '120px', height: '120px' }} />
+        </div>
+
+        <div style={{ textAlign: 'center', marginTop: '15px', fontStyle: 'italic' }}>
+          Cảm ơn và hẹn gặp lại!
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -692,18 +786,17 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                   ⏳ Đơn đang được Bếp xử lý
                 </div>
               ) : selectedOrder.status === 'completed' || activeTab === 'completed' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ padding: '16px', background: '#10b98115', border: '2px solid #10b981', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
-                    <div style={{ fontWeight: 'bold', color: '#10b981', fontSize: '1.1rem' }}>Đã Hoàn Thành</div>
-                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '8px' }}>
-                      Thanh toán: <strong>{getMethodLabel(selectedOrder.paymentMethod)}</strong>
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>
-                      {new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ width: '100%', padding: '16px', background: '#10b98115', border: '2px solid #10b981', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>✅ Thanh toán thành công!</div>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      Phương thức: <strong>{getMethodLabel(selectedOrder.paymentMethod)}</strong>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  
+                  {renderBillPreview(selectedOrder)}
+                  
+                  <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                     <button onClick={() => printBill(selectedOrder)} style={{ flex: 1, padding: '12px', background: '#e85d04', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif' }}>📄 In Bill</button>
                   </div>
                 </div>

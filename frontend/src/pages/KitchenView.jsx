@@ -227,7 +227,7 @@ export default function KitchenView({ onLogout }) {
   useEffect(() => {
     loadOrders();
     loadCompletedOrders();
-    
+
     // Socket.io real-time updates
     const socket = io(SOCKET_URL, {
       reconnection: true,
@@ -248,7 +248,7 @@ export default function KitchenView({ onLogout }) {
       const validStatuses = ['pending', 'Pending', 'Processing', 'processing', 'ready', 'Ready', 'cooking', 'Cooking'];
       if (validStatuses.includes(updatedOrder.status)) {
         // Update order if still in kitchen view
-        setOrders((prev) => 
+        setOrders((prev) =>
           prev.map((o) => o.id === updatedOrder.id ? updatedOrder : o)
         );
       } else {
@@ -302,8 +302,8 @@ export default function KitchenView({ onLogout }) {
     <div style={{ ...styles.page, background: pageBg, color: textMain }}>
       <header style={styles.header}>
         <div>
-          <h1 style={styles.heading}>Bếp – KDS</h1>
-          <p style={{ ...styles.subtitle, color: textMuted }}>Xem đơn đang chờ xử lý. Màn hình được làm tối, rõ ràng và dễ đọc trong môi trường bếp.</p>
+          <h1 style={styles.heading}>Bếp</h1>
+          <p style={{ ...styles.subtitle, color: textMuted }}></p>
         </div>
         <div style={{ display: 'grid', gap: '10px', textAlign: 'right' }}>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
@@ -406,7 +406,7 @@ export default function KitchenView({ onLogout }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <span style={styles.statusTag}>{order.status?.toUpperCase() || 'PENDING'}</span>
-                          <span style={{...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6'}}>
+                          <span style={{ ...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6' }}>
                             {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                           </span>
                         </div>
@@ -469,7 +469,7 @@ export default function KitchenView({ onLogout }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <span style={{ ...styles.statusTag, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>ĐÃ XONG</span>
-                        <span style={{...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6'}}>
+                        <span style={{ ...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6' }}>
                           {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                         </span>
                       </div>
