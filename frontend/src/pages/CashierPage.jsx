@@ -36,7 +36,7 @@ export default function CashierPage() {
     loadPaymentRequests();
     loadStaffCalls();
     loadPendingOrders();
-    
+
     // Connect to Socket.io
     const socket = io(SOCKET_URL, {
       reconnection: true,
@@ -210,8 +210,8 @@ export default function CashierPage() {
         paymentStatus: 'paid'
       });
       // Update order status to completed
-      await axios.patch(ADMIN_ORDERS_API.UPDATE_ORDER_STATUS(orderId), { 
-        status: 'completed' 
+      await axios.patch(ADMIN_ORDERS_API.UPDATE_ORDER_STATUS(orderId), {
+        status: 'completed'
       });
       loadCompletedOrders();
       setSelectedOrder(null);
@@ -398,157 +398,157 @@ export default function CashierPage() {
       {activeTab === 'waiting' && (
         <>
           <div style={{ background: '#fff', border: '2px solid #ff910015', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-        <h2 style={{ color: '#ff9100', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
-          Yêu Cầu Gọi Nhân Viên ({staffCalls.length})
-        </h2>
-        <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {staffCalls.length === 0 ? (
-            <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu gọi nhân viên</p>
-          ) : (
-            staffCalls.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  border: '1px solid #fccaa6',
-                  borderLeft: '4px solid #ff9100',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  background: '#fffdf8'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                      Yêu cầu #{item.id} - {getTableLabel(item)}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
-                    {item.message && (
-                      <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.message}</div>
-                    )}
-                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
-                      {new Date(item.createdAt).toLocaleString('vi-VN')}
+            <h2 style={{ color: '#ff9100', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+              Yêu Cầu Gọi Nhân Viên ({staffCalls.length})
+            </h2>
+            <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {staffCalls.length === 0 ? (
+                <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu gọi nhân viên</p>
+              ) : (
+                staffCalls.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      border: '1px solid #fccaa6',
+                      borderLeft: '4px solid #ff9100',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      background: '#fffdf8'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                          Yêu cầu #{item.id} - {getTableLabel(item)}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
+                        {item.message && (
+                          <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.message}</div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
+                          {new Date(item.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => updateStaffCallStatus(item.id, 'completed')}
+                          disabled={requestLoading === item.id}
+                          style={{
+                            padding: '8px 12px',
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                            opacity: requestLoading === item.id ? 0.7 : 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          Xong
+                        </button>
+                        <button
+                          onClick={() => updateStaffCallStatus(item.id, 'cancelled')}
+                          disabled={requestLoading === item.id}
+                          style={{
+                            padding: '8px 12px',
+                            background: '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                            opacity: requestLoading === item.id ? 0.7 : 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          Hủy
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => updateStaffCallStatus(item.id, 'completed')}
-                      disabled={requestLoading === item.id}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#10b981',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
-                        opacity: requestLoading === item.id ? 0.7 : 1,
-                        fontWeight: 600
-                      }}
-                    >
-                      Xong
-                    </button>
-                    <button
-                      onClick={() => updateStaffCallStatus(item.id, 'cancelled')}
-                      disabled={requestLoading === item.id}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#ef4444',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
-                        opacity: requestLoading === item.id ? 0.7 : 1,
-                        fontWeight: 600
-                      }}
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+                ))
+              )}
+            </div>
+          </div>
 
-      <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-        <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
-          Yêu Cầu Thanh Toán Từ Khách ({paymentRequests.length})
-        </h2>
-        <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {paymentRequests.length === 0 ? (
-            <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu thanh toán mới</p>
-          ) : (
-            paymentRequests.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  border: '1px solid #f3d4bd',
-                  borderLeft: '4px solid #e85d04',
-                  borderRadius: '8px',
-                  padding: '12px',
-                  background: '#fffaf6'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                      Yêu cầu #{item.id} - {getTableLabel(item)}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
-                    {item.note && (
-                      <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.note}</div>
-                    )}
-                    <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
-                      {new Date(item.createdAt).toLocaleString('vi-VN')}
+          <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+            <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+              Yêu Cầu Thanh Toán Từ Khách ({paymentRequests.length})
+            </h2>
+            <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {paymentRequests.length === 0 ? (
+                <p style={{ color: '#999', textAlign: 'center', padding: '20px 12px', margin: 0 }}>Chưa có yêu cầu thanh toán mới</p>
+              ) : (
+                paymentRequests.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      border: '1px solid #f3d4bd',
+                      borderLeft: '4px solid #e85d04',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      background: '#fffaf6'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                          Yêu cầu #{item.id} - {getTableLabel(item)}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
+                        {item.note && (
+                          <div style={{ fontSize: '0.9rem', color: '#555', marginTop: '4px' }}>Ghi chú: {item.note}</div>
+                        )}
+                        <div style={{ fontSize: '0.8rem', color: '#999', marginTop: '4px' }}>
+                          {new Date(item.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => updatePaymentRequestStatus(item.id, 'completed')}
+                          disabled={requestLoading === item.id}
+                          style={{
+                            padding: '8px 12px',
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                            opacity: requestLoading === item.id ? 0.7 : 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          Xác Nhận
+                        </button>
+                        <button
+                          onClick={() => updatePaymentRequestStatus(item.id, 'cancelled')}
+                          disabled={requestLoading === item.id}
+                          style={{
+                            padding: '8px 12px',
+                            background: '#ef4444',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
+                            opacity: requestLoading === item.id ? 0.7 : 1,
+                            fontWeight: 600
+                          }}
+                        >
+                          Hủy
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => updatePaymentRequestStatus(item.id, 'completed')}
-                      disabled={requestLoading === item.id}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#10b981',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
-                        opacity: requestLoading === item.id ? 0.7 : 1,
-                        fontWeight: 600
-                      }}
-                    >
-                      Xác Nhận
-                    </button>
-                    <button
-                      onClick={() => updatePaymentRequestStatus(item.id, 'cancelled')}
-                      disabled={requestLoading === item.id}
-                      style={{
-                        padding: '8px 12px',
-                        background: '#ef4444',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: requestLoading === item.id ? 'not-allowed' : 'pointer',
-                        opacity: requestLoading === item.id ? 0.7 : 1,
-                        fontWeight: 600
-                      }}
-                    >
-                      Hủy
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+                ))
+              )}
+            </div>
+          </div>
         </>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Cột Danh Sách Orders */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
+
           {/* Đơn Đang Xử Lý Bếp */}
           {activeTab === 'waiting' && (
             <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px' }}>
@@ -560,36 +560,37 @@ export default function CashierPage() {
                   <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>Không có đơn đang chờ bếp</p>
                 ) : (
                   pendingOrders.map(order => (
-                  <div
-                    key={`pending-${order.id}`}
-                    onClick={() => setSelectedOrder(order)}
-                    style={{
-                      background: selectedOrder?.id === order.id ? '#e85d0415' : '#f9f9f9',
-                      border: selectedOrder?.id === order.id ? '2px solid #e85d04' : '1px solid #ddd',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
+                    <div
+                      key={`pending-${order.id}`}
+                      onClick={() => setSelectedOrder(order)}
+                      style={{
+                        background: selectedOrder?.id === order.id ? '#e85d0415' : '#f9f9f9',
+                        border: selectedOrder?.id === order.id ? '2px solid #e85d04' : '1px solid #ddd',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
                           <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
                             {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
                           </div>
-                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                          {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                          <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                            {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
+                          {(order.total || 0).toLocaleString('vi-VN')}đ
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
-                        {(order.total || 0).toLocaleString('vi-VN')}đ
+                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#999' }}>
+                        {order.items?.length || 0} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
                       </div>
                     </div>
-                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#999' }}>
-                      {order.items?.length || 0} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -618,9 +619,9 @@ export default function CashierPage() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                          <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                            {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
-                          </div>
+                        <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                          {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
+                        </div>
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>
                           {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                         </div>
@@ -796,9 +797,9 @@ export default function CashierPage() {
             {/* Content */}
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div style={{ fontSize: '3rem', marginBottom: '12px' }}>💳</div>
-              <h2 style={{ 
-                color: '#e85d04', 
-                margin: '0 0 8px 0', 
+              <h2 style={{
+                color: '#e85d04',
+                margin: '0 0 8px 0',
                 fontSize: '2rem',
                 fontWeight: 900,
                 fontFamily: '"Times New Roman", Times, serif'
@@ -806,8 +807,8 @@ export default function CashierPage() {
                 Mã QR Thanh Toán
               </h2>
               <div style={{ height: '3px', width: '60px', background: 'linear-gradient(90deg, #e85d04, #f5a868)', margin: '12px auto 24px', borderRadius: '999px' }} />
-              
-              <div style={{ 
+
+              <div style={{
                 background: 'rgba(232, 93, 4, 0.08)',
                 borderRadius: '16px',
                 padding: '20px',
@@ -817,9 +818,9 @@ export default function CashierPage() {
                 <p style={{ color: '#666', margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 500 }}>
                   🍽️ <strong>{getTableLabel(selectedOrder) || selectedOrder.table?.name || (selectedOrder.tableId ? `Bàn ${selectedOrder.tableId}` : '')}</strong>
                 </p>
-                <p style={{ 
+                <p style={{
                   margin: 0,
-                  fontSize: '2.2rem', 
+                  fontSize: '2.2rem',
                   fontWeight: 900,
                   background: 'linear-gradient(135deg, #e85d04, #f5a868)',
                   backgroundClip: 'text',
@@ -829,13 +830,13 @@ export default function CashierPage() {
                   {selectedOrder.total.toLocaleString('vi-VN')}₫
                 </p>
               </div>
-              
-              <div style={{ 
+
+              <div style={{
                 background: '#fff',
-                padding: '24px', 
+                padding: '24px',
                 borderRadius: '16px',
                 marginBottom: '24px',
-                display: 'flex', 
+                display: 'flex',
                 justifyContent: 'center',
                 border: '3px solid #e85d04',
                 boxShadow: '0 8px 24px rgba(232, 93, 4, 0.15)'
@@ -848,10 +849,10 @@ export default function CashierPage() {
                 />
               </div>
 
-              <p style={{ 
-                fontSize: '0.95rem', 
-                color: '#999', 
-                marginBottom: '28px', 
+              <p style={{
+                fontSize: '0.95rem',
+                color: '#999',
+                marginBottom: '28px',
                 fontFamily: '"Times New Roman", Times, serif',
                 fontStyle: 'italic'
               }}>
