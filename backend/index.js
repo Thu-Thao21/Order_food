@@ -514,7 +514,7 @@ app.get('/api/payment-requests', async (req, res) => {
 // Tạo yêu cầu thanh toán mới
 app.post('/api/payment-requests', async (req, res) => {
   try {
-    const { method, note, tableId } = req.body;
+    const { method, note, tableId, tableName } = req.body;
     
     if (!method || !['cash', 'transfer', 'card'].includes(method)) {
       return res.status(400).json({ error: 'Phương thức thanh toán không hợp lệ' });
@@ -525,7 +525,8 @@ app.post('/api/payment-requests', async (req, res) => {
         method,
         note: note || '',
         status: 'pending',
-        tableId: tableId ? Number(tableId) : null
+        tableId: tableId ? Number(tableId) : null,
+        tableName: tableName || null
       },
       include: { table: true }
     });
@@ -581,7 +582,7 @@ app.get('/api/ratings', async (req, res) => {
 // Tạo đánh giá mới
 app.post('/api/ratings', async (req, res) => {
   try {
-    const { stars, note, tableId } = req.body;
+    const { stars, note, tableId, tableName } = req.body;
     
     if (!stars || stars < 1 || stars > 5) {
       return res.status(400).json({ error: 'Đánh giá phải từ 1-5 sao' });
@@ -592,7 +593,8 @@ app.post('/api/ratings', async (req, res) => {
         stars: Number(stars),
         note: note || '',
         status: 'pending',
-        tableId: tableId ? Number(tableId) : null
+        tableId: tableId ? Number(tableId) : null,
+        tableName: tableName || null
       },
       include: { table: true }
     });
@@ -644,13 +646,14 @@ app.get('/api/staff-calls', async (req, res) => {
 // Tạo yêu cầu gọi nhân viên
 app.post('/api/staff-calls', async (req, res) => {
   try {
-    const { message, tableId } = req.body;
+    const { message, tableId, tableName } = req.body;
     
     const staffCall = await prisma.staffCall.create({
       data: {
         message: message || '',
         status: 'pending',
-        tableId: tableId ? Number(tableId) : null
+        tableId: tableId ? Number(tableId) : null,
+        tableName: tableName || null
       },
       include: { table: true }
     });
@@ -738,12 +741,13 @@ io.on('connection', (socket) => {
   // Gọi nhân viên
   socket.on('call-staff', async (data) => {
     try {
-      const { tableId, type } = data;
+      const { tableId, tableName, type } = data;
 
       // Tạo yêu cầu gọi
       const callRequest = await prisma.callRequest.create({
         data: {
           tableId: Number(tableId),
+          tableName: tableName || null,
           type: type || 'general',
           status: 'pending'
         },

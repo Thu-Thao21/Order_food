@@ -10,6 +10,7 @@ const socket = io(SOCKET_URL);
 export default function CustomerApp() {
   const { tableId } = useParams();
   const [categories, setCategories] = useState([]);
+  const [tableName, setTableName] = useState('');
   const [loading, setLoading] = useState(true);
   const [showCallModal, setShowCallModal] = useState(false);
 
@@ -20,6 +21,7 @@ export default function CustomerApp() {
     axios.get(CUSTOMER_API.GET_TABLE_MENU(tableId))
       .then(res => {
         setCategories(res.data.categories);
+        setTableName(res.data.table?.name || '');
         setLoading(false);
       })
       .catch(err => {
@@ -59,7 +61,11 @@ export default function CustomerApp() {
   }, [tableId]);
 
   const handleCallStaff = (type) => {
-    socket.emit('call-staff', { tableId: parseInt(tableId), type });
+    socket.emit('call-staff', {
+      tableId: parseInt(tableId),
+      tableName: tableName || `Bàn ${tableId}`,
+      type
+    });
     setShowCallModal(false);
   };
 
@@ -69,7 +75,7 @@ export default function CustomerApp() {
     <div className="container" style={{ paddingBottom: '100px', position: 'relative' }}>
       <header style={{ padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Bàn {tableId}</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>{tableName || `Bàn ${tableId}`}</h2>
           <p style={{ color: 'var(--text-muted)' }}>Quét mã QR gọi món</p>
         </div>
         <button 

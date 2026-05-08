@@ -318,6 +318,8 @@ const styles = {
 export default function Home({ onLogin }) {
   const { tableId } = useParams();
   const [tableName, setTableName] = useState('');
+  const tableDisplayName = tableName || (tableId ? `Bàn ${tableId}` : '');
+  const tableLabelPayload = tableDisplayName || `Bàn ${tableId || ''}`;
   
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -379,8 +381,9 @@ export default function Home({ onLogin }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: staffMessage,
-          tableId: tableId ? Number(tableId) : null
+          message: staffMessage ? `${tableLabelPayload} - ${staffMessage}` : tableLabelPayload,
+          tableId: tableId ? Number(tableId) : null,
+          tableName: tableLabelPayload
         })
       });
       
@@ -408,7 +411,9 @@ export default function Home({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           stars: rating,
-          tableId: tableId ? Number(tableId) : null
+          tableId: tableId ? Number(tableId) : null,
+          tableName: tableLabelPayload,
+          note: tableLabelPayload
         })
       });
       
@@ -436,8 +441,9 @@ export default function Home({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           method: paymentMethod,
-          note: paymentNote,
-          tableId: tableId ? Number(tableId) : null
+          note: paymentNote ? `${tableLabelPayload} - ${paymentNote}` : tableLabelPayload,
+          tableId: tableId ? Number(tableId) : null,
+          tableName: tableLabelPayload
         })
       });
       
@@ -491,7 +497,7 @@ export default function Home({ onLogin }) {
               <>
                 Xin chào quý khách tại<br/>
                 <span style={{ color: '#ffea00', fontSize: '1.2em', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
-                  {tableName || `Bàn ${tableId}`}
+                  {tableDisplayName}
                 </span>
               </>
             ) : (
@@ -633,6 +639,9 @@ export default function Home({ onLogin }) {
                 <X size={24} />
               </button>
             </div>
+            <div style={{ marginBottom: '16px', padding: '10px 12px', borderRadius: '8px', background: '#f8fafc', color: '#e85d04', fontWeight: 700, textAlign: 'center' }}>
+              {tableDisplayName ? `Bàn hiện tại: ${tableDisplayName}` : 'Bàn hiện tại: Không xác định'}
+            </div>
             <textarea
               style={{ ...styles.modalInput, minHeight: '100px', fontFamily: 'inherit' }}
               placeholder="Nhập nội dung yêu cầu (tùy chọn)..."
@@ -655,6 +664,9 @@ export default function Home({ onLogin }) {
               <button style={styles.closeButton} onClick={() => setShowRatingModal(false)}>
                 <X size={24} />
               </button>
+            </div>
+            <div style={{ marginBottom: '16px', padding: '10px 12px', borderRadius: '8px', background: '#f8fafc', color: '#e85d04', fontWeight: 700, textAlign: 'center' }}>
+              {tableDisplayName ? `Bàn hiện tại: ${tableDisplayName}` : 'Bàn hiện tại: Không xác định'}
             </div>
             <p style={{ textAlign: 'center', color: '#666', marginBottom: '24px' }}>Bạn cảm thấy như thế nào về dịch vụ của chúng tôi?</p>
             <div style={styles.starsContainer}>
@@ -689,6 +701,9 @@ export default function Home({ onLogin }) {
               <button style={styles.closeButton} onClick={() => setShowPaymentModal(false)}>
                 <X size={24} />
               </button>
+            </div>
+            <div style={{ marginBottom: '16px', padding: '10px 12px', borderRadius: '8px', background: '#f8fafc', color: '#e85d04', fontWeight: 700, textAlign: 'center' }}>
+              {tableDisplayName ? `Bàn hiện tại: ${tableDisplayName}` : 'Bàn hiện tại: Không xác định'}
             </div>
             
             <p style={{ textAlign: 'center', color: '#333', marginBottom: '16px', fontWeight: 600 }}>Chọn phương thức thanh toán:</p>

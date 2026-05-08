@@ -35,6 +35,17 @@ export default function AdminDashboard({ onLogout }) {
   const [ratingsLoading, setRatingsLoading] = useState(false);
   const [ratingActionLoading, setRatingActionLoading] = useState(null);
 
+  const getTableLabel = (record) => {
+    const fromDirectField = record.tableName || record.table?.name;
+    if (fromDirectField) return fromDirectField;
+
+    const sourceText = record.note || '';
+    const prefix = sourceText.split(' - ')[0].trim();
+    if (prefix.startsWith('Bàn ')) return prefix;
+
+    return '';
+  };
+
   // Load ratings function
   const loadRatings = async () => {
     try {
@@ -518,6 +529,9 @@ export default function AdminDashboard({ onLogout }) {
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#999' }}>
                       Đánh giá #{rating.id}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600, marginTop: '4px' }}>
+                      {getTableLabel(rating)}
                     </div>
                   </div>
 

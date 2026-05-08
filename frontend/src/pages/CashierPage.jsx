@@ -18,6 +18,17 @@ export default function CashierPage() {
   const [activeTab, setActiveTab] = useState('waiting');
   const qrRef = useRef();
 
+  const getTableLabel = (item) => {
+    const fromDirectField = item.tableName || item.table?.name;
+    if (fromDirectField) return fromDirectField;
+
+    const sourceText = item.message || item.note || '';
+    const prefix = sourceText.split(' - ')[0].trim();
+    if (prefix.startsWith('Bàn ')) return prefix;
+
+    return '';
+  };
+
   useEffect(() => {
     loadOrders();
     loadCompletedOrders();
@@ -251,7 +262,7 @@ export default function CashierPage() {
           </div>
 
           <div style="margin-top: 15px;">
-            <div class="info-line">Khách hàng: Khách lẻ - Bàn: ${order.table?.name || ''}</div>
+            <div class="info-line">Khách hàng: Khách lẻ - Bàn: ${order.tableName || order.table?.name || ''}</div>
             <div class="info-line">SĐT:</div>
             <div class="info-line">Địa chỉ: - -</div>
           </div>
@@ -383,7 +394,7 @@ export default function CashierPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                      Yêu cầu #{item.id} {item.table && `- ${item.table.name}`}
+                      Yêu cầu #{item.id} - {getTableLabel(item)}
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#ff9100', fontWeight: 600 }}>📞 Gọi Nhân Viên</div>
                     {item.message && (
@@ -456,7 +467,7 @@ export default function CashierPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                      Yêu cầu #{item.id} {item.table && `- ${item.table.name}`}
+                      Yêu cầu #{item.id} - {getTableLabel(item)}
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>{getMethodLabel(item.method)}</div>
                     {item.note && (

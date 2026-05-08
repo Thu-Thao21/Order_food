@@ -2,13 +2,10 @@
 
 const PRODUCTION_URL = 'https://vannthangg.onrender.com';
 
-const getBaseUrl = () => {
-  if (window.location.hostname === 'localhost') return 'http://localhost:3000';
-  return PRODUCTION_URL;
-};
-
-export const SOCKET_URL = getBaseUrl();
-export const API_BASE_URL = `${SOCKET_URL}/api`;
+// Luôn dùng server chung để đồng bộ dữ liệu giữa các máy/devices.
+// Nếu sau này cần chạy local, chỉ cần đổi lại biến này hoặc cấu hình env riêng.
+export const SOCKET_URL = PRODUCTION_URL;
+export const API_BASE_URL = `${PRODUCTION_URL}/api`;
 
 // ===== AUTH APIs =====
 export const AUTH_API = {
