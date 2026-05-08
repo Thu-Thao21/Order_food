@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { ADMIN_ORDERS_API, ADMIN_MENU_API, SOCKET_URL } from '../config/api';
+import { ADMIN_ORDERS_API, ADMIN_MENU_API, SOCKET_URL, API_BASE_URL } from '../config/api';
 
 const styles = {
   page: {
@@ -145,6 +145,7 @@ export default function KitchenView({ onLogout }) {
   const tabBorderColor = '#e5e5e5';
 
   const [orders, setOrders] = useState([]);
+  const [completedOrders, setCompletedOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
@@ -169,6 +170,15 @@ export default function KitchenView({ onLogout }) {
       setError('Không thể tải đơn. Vui lòng thử lại.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCompletedOrders = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/orders/completed`);
+      setCompletedOrders(response.data || []);
+    } catch (err) {
+      console.error('Lỗi tải đơn đã hoàn thành:', err);
     }
   };
 
@@ -210,6 +220,7 @@ export default function KitchenView({ onLogout }) {
 
   useEffect(() => {
     loadOrders();
+    loadCompletedOrders();
     
     // Socket.io real-time updates
     const socket = io(SOCKET_URL, {
@@ -237,6 +248,10 @@ export default function KitchenView({ onLogout }) {
       } else {
         // Remove order if status changed to waiting_payment, completed, etc
         setOrders((prev) => prev.filter((o) => o.id !== updatedOrder.id));
+        // Refresh completed orders if necessary
+        if (updatedOrder.status === 'completed' || updatedOrder.status === 'waiting_payment') {
+          loadCompletedOrders();
+        }
       }
     });
 
@@ -259,6 +274,8 @@ export default function KitchenView({ onLogout }) {
   useEffect(() => {
     if (activeTab === 'inventory') {
       loadMenuItems();
+    } else if (activeTab === 'completed') {
+      loadCompletedOrders();
     }
   }, [activeTab]);
 
@@ -323,7 +340,22 @@ export default function KitchenView({ onLogout }) {
             transition: 'all 0.3s ease'
           }}
         >
-          Đơn hàng ({orders.length})
+          Đơn đang chờ ({orders.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          style={{
+            padding: '10px 18px',
+            border: 'none',
+            background: activeTab === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+            color: activeTab === 'completed' ? '#10b981' : textMuted,
+            borderBottom: activeTab === 'completed' ? '2px solid #10b981' : 'none',
+            cursor: 'pointer',
+            fontWeight: 700,
+            transition: 'all 0.3s ease'
+          }}
+        >
+          Đã hoàn thành ({completedOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
@@ -405,6 +437,59 @@ export default function KitchenView({ onLogout }) {
               )}
             </div>
           )}
+        </>
+      )}
+
+      {/* Tab: Đã hoàn thành */}
+      {activeTab === 'completed' && (
+        <>
+          <div style={styles.grid}>
+            {completedOrders.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: textMuted, padding: '60px 14px', border: `1px solid ${cardBorder}`, borderRadius: '24px' }}>
+                Không có đơn đã hoàn thành.
+              </div>
+            ) : (
+              completedOrders.map((order) => (
+                <article key={`comp-${order.id}`} style={{ ...styles.card, background: cardBg, border: `1px solid ${cardBorder}` }}>
+                  <div style={styles.cardHeader}>
+                    <div>
+                      <div style={{ fontSize: '0.98rem', color: '#94a3b8' }}>{order.table?.name || `Bàn ${order.tableId}`}</div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 700, marginTop: '6px' }}>#{order.id}</div>
+                    </div>
+                    <div style={{ ...styles.tableBadge, background: '#10b981' }}>{formatTimeSince(order.createdAt)}</div>
+                  </div>
+
+                  <div style={styles.body}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <span style={{ ...styles.statusTag, background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>ĐÃ XONG</span>
+                        <span style={{...styles.statusTag, background: order.orderType === 'dine-in' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)', color: order.orderType === 'dine-in' ? '#10b981' : '#8b5cf6'}}>
+                          {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                        </span>
+                      </div>
+                      <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <ul style={styles.items}>
+                      {order.items?.map((item) => (
+                        <li key={`comp-item-${item.id}`} style={{ ...styles.itemRow, background: itemRowBg, flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <p style={{ ...styles.itemName, color: textMain, margin: 0 }}>{item.menuItem?.name || 'Món không xác định'}</p>
+                            <p style={{ ...styles.itemQty, margin: 0 }}>x{item.quantity}</p>
+                          </div>
+                          {item.note && (
+                            <div style={{ color: '#ef4444', fontSize: '0.85rem', fontWeight: '600', backgroundColor: '#ef444410', padding: '6px 10px', borderRadius: '4px', fontStyle: 'italic', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                              <span>⚠️</span> <span>{item.note}</span>
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
         </>
       )}
 

@@ -79,14 +79,17 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    overflow-y: hidden;
+    overflow-y: auto;
   }
 
   .responsive-sticky-footer.expanded {
-    max-height: 80vh !important; /* Allow more height when expanded */
+    height: 80vh !important; /* Force exact height instead of max-height to trigger flex scroll */
+    max-height: 80vh !important; 
   }
 
   .responsive-footer-card {
+    display: flex !important;
+    flex-direction: column !important;
     height: 100% !important;
     max-height: 100% !important;
   }
@@ -185,5 +188,5 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow-y: hidden;
+  overflow-y: auto;
 }

@@ -550,13 +550,16 @@ export default function CashierPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
           {/* Đơn Đang Xử Lý Bếp */}
-          {activeTab === 'waiting' && pendingOrders.length > 0 && (
+          {activeTab === 'waiting' && (
             <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px' }}>
               <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
                 Đơn Đang Xử Lý Bếp ({pendingOrders.length})
               </h2>
               <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {pendingOrders.map(order => (
+                {pendingOrders.length === 0 ? (
+                  <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>Không có đơn đang chờ bếp</p>
+                ) : (
+                  pendingOrders.map(order => (
                   <div
                     key={`pending-${order.id}`}
                     onClick={() => setSelectedOrder(order)}
@@ -697,7 +700,6 @@ export default function CashierPage() {
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => printBill(selectedOrder)} style={{ flex: 1, padding: '12px', background: '#e85d04', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif' }}>📄 In Bill</button>
-                    <button onClick={() => setShowQRModal(true)} style={{ flex: 1, padding: '12px', background: '#666', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif' }}>📱 Ảnh Bill / QR</button>
                   </div>
                 </div>
               ) : (

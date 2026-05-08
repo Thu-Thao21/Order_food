@@ -519,44 +519,6 @@ export default function AdminDashboard({ onLogout }) {
                     {new Date(rating.createdAt).toLocaleString('vi-VN')}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {rating.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => updateRatingStatus(rating.id, 'reviewed')}
-                          disabled={ratingActionLoading === rating.id}
-                          style={{
-                            flex: 1,
-                            padding: '8px 12px',
-                            background: '#10b981',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: ratingActionLoading === rating.id ? 'not-allowed' : 'pointer',
-                            opacity: ratingActionLoading === rating.id ? 0.7 : 1,
-                            fontWeight: 600,
-                            fontSize: '0.9rem'
-                          }}
-                        >
-                          ✓ Đã Xem
-                        </button>
-                      </>
-                    )}
-                    {rating.status === 'reviewed' && (
-                      <div style={{
-                        flex: 1,
-                        padding: '8px 12px',
-                        background: '#10b981',
-                        color: '#fff',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontWeight: 600,
-                        fontSize: '0.9rem'
-                      }}>
-                        ✓ Đã Xem
-                      </div>
-                    )}
-                  </div>
                 </div>
               ))
             )}
