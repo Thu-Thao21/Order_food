@@ -85,7 +85,7 @@ export default function AdminApp() {
                 {tables.map(table => (
                   <tr key={table.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '12px' }}>#{table.id}</td>
-                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{table.name}</td>
+                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{table.name || `Bàn ${table.id}`}</td>
                     <td style={{ padding: '12px', color: 'var(--accent)' }}>
                       <a href={`${window.location.origin}/table/${table.id}`} target="_blank" rel="noreferrer">
                          {window.location.origin}/table/{table.id}

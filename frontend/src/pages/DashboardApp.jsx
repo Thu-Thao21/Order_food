@@ -132,7 +132,7 @@ export default function DashboardApp() {
                 <div key={call.id} style={{ background: 'rgba(255, 167, 38, 0.1)', padding: '12px', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--warning)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 style={{ margin: 0 }}>{call.table.name}</h4>
+                      <h4 style={{ margin: 0 }}>{call.table?.name || `Bàn ${call.tableId || call.table?.id || ''}`}</h4>
                       <div style={{ color: 'var(--warning)', marginTop: '4px', fontWeight: 'bold' }}>{call.type}</div>
                     </div>
                     <button className="btn-primary" style={{ padding: '6px 12px', fontSize: '14px' }} onClick={() => markResolved(call.id)}>Xong</button>

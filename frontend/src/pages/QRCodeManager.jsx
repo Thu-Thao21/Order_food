@@ -56,7 +56,7 @@ export default function QRCodeManager({ onLogout }) {
         const url = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = url;
-        link.download = `QR_${table.name}.png`;
+        link.download = `QR_${table.name || `Ban_${table.id}`}.png`;
         link.click();
       }
     }
@@ -70,7 +70,7 @@ export default function QRCodeManager({ onLogout }) {
         const qrImage = canvas.toDataURL('image/png');
         const printWindow = window.open('', '', 'height=600,width=600');
         const appOrigin = FRONTEND_URL;
-        const html = `<html><head><title>In ${table.name}</title><style>body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:white}.container{text-align:center;padding:40px}h1{margin:0 0 20px 0;font-size:24px}img{max-width:300px;border:2px solid #333;margin:20px 0}p{font-size:12px;color:#666}</style></head><body><div class="container"><h1>${table.name}</h1><img src="${qrImage}" /><p>${appOrigin}/table/${table.id}</p></div></body></html>`;
+        const html = `<html><head><title>In ${table.name || `Bàn ${table.id}`}</title><style>body{display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:white}.container{text-align:center;padding:40px}h1{margin:0 0 20px 0;font-size:24px}img{max-width:300px;border:2px solid #333;margin:20px 0}p{font-size:12px;color:#666}</style></head><body><div class="container"><h1>${table.name || `Bàn ${table.id}`}</h1><img src="${qrImage}" /><p>${appOrigin}/table/${table.id}</p></div></body></html>`;
         printWindow.document.write(html);
         printWindow.document.close();
         setTimeout(() => printWindow.print(), 250);
@@ -96,7 +96,7 @@ export default function QRCodeManager({ onLogout }) {
     let html = `<html><head><title>In QR</title><style>body{font-family:Arial;padding:20px;background:white}h1{text-align:center;margin-bottom:30px}.qr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:30px}.qr-card{border:2px solid #ddd;padding:20px;border-radius:8px;background:#fafafa}h3{margin:15px 0;font-size:18px}img{max-width:180px;border:1px solid #ccc}p{font-size:12px;color:#666}</style></head><body><h1>Mã QR - ${new Date().toLocaleDateString('vi-VN')}</h1><div class="qr-grid">`;
 
     qrImages.forEach(({ table, image }) => {
-      html += `<div class="qr-card"><h3>${table.name}</h3><img src="${image}" /><p>${FRONTEND_URL}/table/${table.id}</p></div>`;
+      html += `<div class="qr-card"><h3>${table.name || `Bàn ${table.id}`}</h3><img src="${image}" /><p>${FRONTEND_URL}/table/${table.id}</p></div>`;
     });
 
     html += `</div></body></html>`;
@@ -136,7 +136,7 @@ export default function QRCodeManager({ onLogout }) {
             <div ref={(el) => { if (el) qrRefs.current[table.id] = el; }} style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
               <QRCode value={`${FRONTEND_URL}/table/${table.id}`} size={180} level="H" />
             </div>
-            <h3 style={{ margin: '10px 0', fontSize: '1.3rem', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{selectedTables.has(table.id) ? '✓ ' : ''}{table.name}</h3>
+            <h3 style={{ margin: '10px 0', fontSize: '1.3rem', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{selectedTables.has(table.id) ? '✓ ' : ''}{table.name || `Bàn ${table.id}`}</h3>
             <p style={{ margin: '8px 0', color: '#666', fontSize: '0.9rem', fontFamily: '"Times New Roman", Times, serif' }}>ID: {table.id}</p>
             <p style={{ margin: '8px 0', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px', color: '#999', fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{FRONTEND_URL}/table/{table.id}</p>
             <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>

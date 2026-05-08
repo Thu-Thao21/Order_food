@@ -149,7 +149,7 @@ export default function ScanQR() {
               onMouseEnter={(e) => Object.assign(e.currentTarget.style, styles.tableButtonHover)}
               onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: styles.tableButton.background, borderColor: 'rgba(148, 163, 184, 0.12)', transform: 'translateY(0)', boxShadow: 'none' })}
             >
-              {table.name}
+              {table.name || `Bàn ${table.id}`}
             </button>
           ))
         )}

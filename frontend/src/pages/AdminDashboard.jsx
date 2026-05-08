@@ -76,8 +76,8 @@ export default function AdminDashboard({ onLogout }) {
         ]);
         setDailyRevenue(dailyRes.data.totalRevenue ?? 0);
         setSummaryData(summaryRes.data || []);
-        const tablesActive = new Set((pendingRes.data || []).map((order) => order.tableId));
-        setActiveTables(tablesActive.size);
+        const tablesActive = new Set((pendingRes.data || []).map((order) => getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')));
+        setActiveTables(Array.from(tablesActive).filter(Boolean).length);
         setRecentOrders((pendingRes.data || []).slice(0, 5));
         setEmployees(empRes.data || []);
         setError(null);
@@ -103,12 +103,12 @@ export default function AdminDashboard({ onLogout }) {
     socket.on('new-order', (newOrder) => {
       console.log('📦 Đơn mới nhận được (Admin):', newOrder);
       setRecentOrders((prev) => [newOrder, ...prev].slice(0, 5));
-      setActiveTables((prevTables) => {
-        // Tính lại số bàn hoạt động
+        setActiveTables((prevTables) => {
+        // Tính lại số bàn hoạt động (theo label: tableName hoặc parsed label)
         axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS)
           .then(res => {
-            const activeTablesSet = new Set((res.data || []).map((order) => order.tableId));
-            return activeTablesSet.size;
+            const activeTablesSet = new Set((res.data || []).map((order) => getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')));
+            return Array.from(activeTablesSet).filter(Boolean).length;
           })
           .catch(() => prevTables);
         return prevTables;
@@ -322,7 +322,7 @@ export default function AdminDashboard({ onLogout }) {
                 e.currentTarget.style.borderColor = '#e5e5e5';
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>Bàn {order.tableId}</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')}</span>
                   <span style={{ background: '#e85d04', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>Chờ</span>
                 </div>
                 <p style={{ color: '#666', margin: 0, fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{order.items?.length || 0} món</p>

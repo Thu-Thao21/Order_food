@@ -545,9 +545,9 @@ export default function CashierPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                        {order.table.name} - Đơn #{order.id}
-                      </div>
+                        <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                          {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
+                        </div>
                       <div style={{ fontSize: '0.9rem', color: '#666' }}>
                         {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                       </div>
@@ -576,7 +576,7 @@ export default function CashierPage() {
               <div style={{ marginBottom: '16px', padding: '12px', background: '#e85d0408', borderRadius: '8px', border: '1px solid #e85d0420' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ color: '#666' }}>Bàn:</span>
-                  <span style={{ fontWeight: 'bold' }}>{selectedOrder.table.name}</span>
+                  <span style={{ fontWeight: 'bold' }}>{getTableLabel(selectedOrder) || selectedOrder.table?.name || (selectedOrder.tableId ? `Bàn ${selectedOrder.tableId}` : '')}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ color: '#666' }}>Loại:</span>
@@ -773,7 +773,7 @@ export default function CashierPage() {
                 border: '1px solid rgba(232, 93, 4, 0.2)'
               }}>
                 <p style={{ color: '#666', margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: 500 }}>
-                  🍽️ <strong>{selectedOrder.table.name}</strong>
+                  🍽️ <strong>{getTableLabel(selectedOrder) || selectedOrder.table?.name || (selectedOrder.tableId ? `Bàn ${selectedOrder.tableId}` : '')}</strong>
                 </p>
                 <p style={{ 
                   margin: 0,

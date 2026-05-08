@@ -62,7 +62,7 @@ export default function TableManager() {
             onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(232, 93, 4, 0.08)'; }}
             >
               {/* Tên bàn */}
-              <h3 style={{ color: '#e85d04', fontSize: '1.5rem', margin: '0 0 20px 0', fontFamily: '"Times New Roman", Times, serif' }}>{table.name}</h3>
+              <h3 style={{ color: '#e85d04', fontSize: '1.5rem', margin: '0 0 20px 0', fontFamily: '"Times New Roman", Times, serif' }}>{table.name || `Bàn ${table.id}`}</h3>
               
               {/* Vùng chứa QR (Lót nền trắng để điện thoại dễ quét) */}
               <div style={{ backgroundColor: '#fff', padding: '12px', borderRadius: '12px', marginBottom: '15px' }}>

@@ -490,6 +490,7 @@ export default function TableMenu() {
 
     const payload = {
       tableId: tableId,
+      tableName: tableName || (tableId ? `Bàn ${tableId}` : ''),
       orderType: orderType,
       items: cart.map((entry) => ({ menuItemId: entry.menuItem.id, quantity: entry.quantity, note: entry.note || '' }))
     };
