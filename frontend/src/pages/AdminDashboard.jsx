@@ -6,7 +6,7 @@ import AdminLayout from '../components/AdminLayout';
 import EmployeeManager from '../components/EmployeeManager';
 import AdminMenuQR from './AdminMenuQR';
 import CashierPage from './CashierPage';
-import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL, RATING_API } from '../config/api';
+import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL, RATING_API, API_BASE_URL } from '../config/api';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
@@ -21,8 +21,10 @@ export default function AdminDashboard({ onLogout }) {
   const [activeTables, setActiveTables] = useState(0);
   const [employees, setEmployees] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
+  const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cashierSubTab, setCashierSubTab] = useState('waiting');
   
   // --- INVENTORY STATES ---
   const [menuItems, setMenuItems] = useState([]);
@@ -68,11 +70,12 @@ export default function AdminDashboard({ onLogout }) {
     const fetchMetrics = async () => {
       try {
         setLoading(true);
-        const [dailyRes, summaryRes, pendingRes, empRes] = await Promise.all([
+        const [dailyRes, summaryRes, pendingRes, empRes, compRes] = await Promise.all([
           axios.get(ADMIN_DASHBOARD_API.GET_DAILY_REVENUE),
           axios.get(ADMIN_DASHBOARD_API.GET_REVENUE_SUMMARY),
           axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS),
-          axios.get(ADMIN_USERS_API.GET_ALL_USERS).catch(() => ({ data: [] }))
+          axios.get(ADMIN_USERS_API.GET_ALL_USERS).catch(() => ({ data: [] })),
+          axios.get(`${API_BASE_URL}/admin/orders/completed`).catch(() => ({ data: [] }))
         ]);
         setDailyRevenue(dailyRes.data.totalRevenue ?? 0);
         setSummaryData(summaryRes.data || []);
@@ -80,6 +83,7 @@ export default function AdminDashboard({ onLogout }) {
         setActiveTables(Array.from(tablesActive).filter(Boolean).length);
         setRecentOrders((pendingRes.data || []).slice(0, 5));
         setEmployees(empRes.data || []);
+        setCompletedOrdersCount((compRes.data || []).length);
         setError(null);
       } catch (err) {
         console.error(err);
@@ -223,8 +227,10 @@ export default function AdminDashboard({ onLogout }) {
   });
 
   // --- GIAO DIỆN TRANG CHỦ (THỐNG KÊ + BẢNG NHÂN VIÊN) ---
-  const StatCard = ({ label, value, icon, color = '#e85d04' }) => (
-    <div style={{
+  const StatCard = ({ label, value, icon, color = '#e85d04', onClick }) => (
+    <div 
+      onClick={onClick}
+      style={{
       background: '#fff',
       border: `2px solid ${color}30`,
       padding: '24px 20px',
@@ -264,9 +270,9 @@ export default function AdminDashboard({ onLogout }) {
       </header>
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '36px' }}>
         <StatCard label="Doanh thu hôm nay" value={formatCurrency(dailyRevenue ?? 0)} icon="" color="#10b981" />
-        <StatCard label="Bàn hoạt động" value={activeTables} icon="" color="#f59e0b" />
-        <StatCard label="Nhân viên" value={employees.length} icon="" color="#e85d04" />
-        <StatCard label="Đơn chờ" value={recentOrders.length} icon="" color="#06b6d4" />
+        <StatCard label="Bàn hoạt động" value={activeTables} icon="" color="#f59e0b" onClick={() => { setActiveTab('cashier'); setCashierSubTab('waiting'); }} />
+        <StatCard label="Đơn chờ" value={recentOrders.length} icon="" color="#06b6d4" onClick={() => { setActiveTab('cashier'); setCashierSubTab('waiting'); }} />
+        <StatCard label="Tổng bill đã TT" value={completedOrdersCount} icon="" color="#8b5cf6" onClick={() => { setActiveTab('cashier'); setCashierSubTab('completed'); }} />
       </section>
 
       {/* Biểu đồ */}
@@ -571,7 +577,7 @@ export default function AdminDashboard({ onLogout }) {
 
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'cashier' && (
-        <CashierPage />
+        <CashierPage initialTab={cashierSubTab} />
       )}
       {activeTab === 'inventory' && renderInventory()}
       {activeTab === 'employee' && (

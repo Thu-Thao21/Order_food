@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { ADMIN_ORDERS_API, SOCKET_URL, API_BASE_URL, PAYMENT_REQUEST_API, STAFF_CALL_API } from '../config/api';
 
-export default function CashierPage() {
+export default function CashierPage({ initialTab = 'waiting' }) {
   const [orders, setOrders] = useState([]);
   const [completedOrders, setCompletedOrders] = useState([]);
   const [paymentRequests, setPaymentRequests] = useState([]);
@@ -16,8 +16,12 @@ export default function CashierPage() {
   const [requestLoading, setRequestLoading] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showQRModal, setShowQRModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('waiting');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const qrRef = useRef();
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const getTableLabel = (item) => {
     const fromDirectField = item.tableName || item.table?.name;
@@ -214,7 +218,7 @@ export default function CashierPage() {
         status: 'completed'
       });
       loadCompletedOrders();
-      setSelectedOrder(null);
+      setSelectedOrder(prev => ({ ...prev, status: 'completed', paymentMethod: method }));
       alert(`Thanh toán thành công bằng ${method === 'cash' ? 'tiền mặt' : 'mã QR'}!`);
     } catch (error) {
       alert('Lỗi thanh toán: ' + error.message);

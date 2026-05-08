@@ -501,6 +501,7 @@ export default function TableMenu() {
       await axios.post(CUSTOMER_API.PLACE_ORDER, payload);
       setMessage('Đặt món thành công!');
       setCart([]);
+      setIsCartExpanded(false);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.error || 'Đặt món thất bại. Vui lòng thử lại.');

@@ -175,8 +175,14 @@ export default function KitchenView({ onLogout }) {
 
   const loadCompletedOrders = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/admin/orders/completed`);
-      setCompletedOrders(response.data || []);
+      const [compRes, waitingRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/admin/orders/completed`),
+        axios.get(`${API_BASE_URL}/admin/orders/waiting-payment`)
+      ]);
+      const combined = [...(compRes.data || []), ...(waitingRes.data || [])];
+      // Sắp xếp giảm dần theo thời gian tạo
+      combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setCompletedOrders(combined);
     } catch (err) {
       console.error('Lỗi tải đơn đã hoàn thành:', err);
     }
