@@ -336,20 +336,20 @@ const sectionStyles = {
   },
   toast: {
     position: 'fixed',
+    top: '20px',
     left: '50%',
     transform: 'translateX(-50%)',
-    bottom: '140px',
-    zIndex: 60,
+    zIndex: 9999,
     borderRadius: '8px',
-    padding: '14px 24px',
-    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.1)',
-    fontWeight: 700,
+    padding: '12px 24px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+    fontWeight: 600,
     textAlign: 'center',
-    minWidth: '280px',
-    maxWidth: '90%',
-    fontSize: '0.95rem',
-    animation: 'slideInUp 0.3s ease-out',
-    background: '#e85d04',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    animation: 'slideDown 0.3s ease-out',
+    background: '#10b981',
     color: '#fff'
   },
   searchBox: {
@@ -889,9 +889,9 @@ export default function TableMenu() {
       {(message || error) && (
         <div style={{
           ...sectionStyles.toast,
-          background: message ? 'rgba(34, 197, 94, 0.96)' : 'rgba(248, 113, 113, 0.96)'
+          background: message ? '#10b981' : '#ef4444'
         }}>
-          {message || error}
+          {message ? '✅' : '❌'} {message || error}
         </div>
       )}
     </main>

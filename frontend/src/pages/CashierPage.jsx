@@ -541,89 +541,98 @@ export default function CashierPage() {
             ))
           )}
         </div>
-          </div>
-          
-          <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-            <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
-              Đơn Đang Xử Lý Bếp ({pendingOrders.length})
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '12px' }}>
-              {pendingOrders.map((order, idx) => (
-                <div key={idx} style={{
-                  background: '#f5f5f5',
-                  border: '1px solid #e5e5e5',
-                  padding: '18px',
-                  borderRadius: '8px',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#fff';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.borderColor = '#e85d04';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = '#f5f5f5';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = '#e5e5e5';
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')}</span>
-                    <span style={{ background: '#e85d04', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{order.status?.toUpperCase() || 'CHỜ'}</span>
-                  </div>
-                  <p style={{ color: '#666', margin: 0, fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{order.items?.length || 0} món</p>
-                  <p style={{ color: '#e85d04', margin: '10px 0 0', fontSize: '1.1rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{(order.total || 0).toLocaleString('vi-VN')} đ</p>
-                </div>
-              ))}
-              {pendingOrders.length === 0 && (
-                <p style={{ color: '#999', padding: '10px', margin: 0 }}>Không có đơn đang chờ bếp</p>
-              )}
-            </div>
-          </div>
+      </div>
         </>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-        {/* Danh sách Orders */}
-        <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px' }}>
-          <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
-            Các Đơn Hàng ({filteredOrders.length})
-          </h2>
-          <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {filteredOrders.length === 0 ? (
-              <p style={{ color: '#999', textAlign: 'center', padding: '40px 20px' }}>Không có đơn hàng nào</p>
-            ) : (
-              filteredOrders.map(order => (
-                <div
-                  key={order.id}
-                  onClick={() => setSelectedOrder(order)}
-                  style={{
-                    background: selectedOrder?.id === order.id ? '#e85d0415' : '#f9f9f9',
-                    border: selectedOrder?.id === order.id ? '2px solid #e85d04' : '1px solid #ddd',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
-                          {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
+        {/* Cột Danh Sách Orders */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Đơn Đang Xử Lý Bếp */}
+          {activeTab === 'waiting' && pendingOrders.length > 0 && (
+            <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px' }}>
+              <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+                Đơn Đang Xử Lý Bếp ({pendingOrders.length})
+              </h2>
+              <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {pendingOrders.map(order => (
+                  <div
+                    key={`pending-${order.id}`}
+                    onClick={() => setSelectedOrder(order)}
+                    style={{
+                      background: selectedOrder?.id === order.id ? '#e85d0415' : '#f9f9f9',
+                      border: selectedOrder?.id === order.id ? '2px solid #e85d04' : '1px solid #ddd',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                          <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                            {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
+                          </div>
+                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                          {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                         </div>
-                      <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                        {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                      </div>
+                      <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
+                        {(order.total || 0).toLocaleString('vi-VN')}đ
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
-                      {order.total.toLocaleString('vi-VN')}đ
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#999' }}>
+                      {order.items?.length || 0} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
                     </div>
                   </div>
-                  <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#999' }}>
-                    {order.items.length} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Các Đơn Hàng (Chờ thanh toán / Đã thanh toán) */}
+          <div style={{ background: '#fff', border: '2px solid #e85d0420', borderRadius: '12px', padding: '20px' }}>
+            <h2 style={{ color: '#e85d04', margin: '0 0 16px 0', fontSize: '1.3rem' }}>
+              {activeTab === 'waiting' ? 'Chờ Thanh Toán' : 'Đã Thanh Toán'} ({filteredOrders.length})
+            </h2>
+            <div style={{ maxHeight: '600px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {filteredOrders.length === 0 ? (
+                <p style={{ color: '#999', textAlign: 'center', padding: '40px 20px' }}>Không có đơn hàng nào</p>
+              ) : (
+                filteredOrders.map(order => (
+                  <div
+                    key={order.id}
+                    onClick={() => setSelectedOrder(order)}
+                    style={{
+                      background: selectedOrder?.id === order.id ? '#e85d0415' : '#f9f9f9',
+                      border: selectedOrder?.id === order.id ? '2px solid #e85d04' : '1px solid #ddd',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                          <div style={{ fontWeight: 'bold', color: '#0f0e2e' }}>
+                            {(getTableLabel(order) || order.table?.name || (order.tableId ? `Bàn ${order.tableId}` : '')) + ` - Đơn #${order.id}`}
+                          </div>
+                        <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                          {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
+                        {order.total.toLocaleString('vi-VN')}đ
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#999' }}>
+                      {order.items.length} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
+                    </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
         </div>
 
@@ -669,96 +678,65 @@ export default function CashierPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <button
-                  onClick={() => printBill(selectedOrder)}
-                  style={{
-                    flex: 1,
-                    padding: '10px',
-                    background: '#e85d04',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontFamily: '"Times New Roman", Times, serif'
-                  }}
-                >
-                  📄 In Bill
-                </button>
-                {activeTab === 'waiting' && (
-                  <button
-                    onClick={() => setShowQRModal(true)}
-                    style={{
-                      flex: 1,
-                      padding: '10px',
-                      background: '#666',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontFamily: '"Times New Roman", Times, serif'
-                    }}
-                  >
-                    📱 QR Code
-                  </button>
-                )}
-              </div>
-
-              <>
-                {activeTab === 'waiting' ? (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handlePayment(selectedOrder.id, 'cash')}
-                      disabled={loading}
-                      style={{
-                        flex: 1,
-                        padding: '12px',
-                        background: '#10b981',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        fontWeight: '600',
-                        fontFamily: '"Times New Roman", Times, serif',
-                        opacity: loading ? 0.7 : 1
-                      }}
-                    >
-                      💵 Tiền Mặt
-                    </button>
-                    <button
-                      onClick={() => handlePayment(selectedOrder.id, 'qr_code')}
-                    disabled={loading}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      background: '#8b5cf6',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: loading ? 'not-allowed' : 'pointer',
-                      fontWeight: '600',
-                      fontFamily: '"Times New Roman", Times, serif',
-                      opacity: loading ? 0.7 : 1
-                    }}
-                  >
-                    🔷 Mã QR
-                  </button>
+              {/* PAYMENT SECTION */}
+              {selectedOrder.status === 'pending' || selectedOrder.status === 'cooking' || selectedOrder.status === 'ready' ? (
+                <div style={{ padding: '16px', background: '#f59e0b15', border: '2px solid #f59e0b', borderRadius: '8px', textAlign: 'center', color: '#d97706', fontWeight: 'bold' }}>
+                  ⏳ Đơn đang được Bếp xử lý
                 </div>
-                ) : (
+              ) : selectedOrder.status === 'completed' || activeTab === 'completed' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ padding: '16px', background: '#10b98115', border: '2px solid #10b981', borderRadius: '8px', textAlign: 'center' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
                     <div style={{ fontWeight: 'bold', color: '#10b981', fontSize: '1.1rem' }}>Đã Hoàn Thành</div>
                     <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '8px' }}>
-                      Thanh toán: <strong>{selectedOrder.paymentMethod === 'cash' ? '💵 Tiền mặt' : '📱 Mã QR'}</strong>
+                      Thanh toán: <strong>{getMethodLabel(selectedOrder.paymentMethod)}</strong>
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '4px' }}>
                       {new Date(selectedOrder.createdAt).toLocaleString('vi-VN')}
                     </div>
                   </div>
-                )}
-              </>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => printBill(selectedOrder)} style={{ flex: 1, padding: '12px', background: '#e85d04', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif' }}>📄 In Bill</button>
+                    <button onClick={() => setShowQRModal(true)} style={{ flex: 1, padding: '12px', background: '#666', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif' }}>📱 Ảnh Bill / QR</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ fontWeight: 'bold', color: '#333' }}>Phương thức thanh toán:</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setPaymentMethod('card')}
+                      style={{ flex: 1, padding: '10px', borderRadius: '6px', border: paymentMethod === 'card' ? '2px solid #e85d04' : '1px solid #ddd', background: paymentMethod === 'card' ? '#e85d0415' : '#fff', color: paymentMethod === 'card' ? '#e85d04' : '#666', fontWeight: 'bold', fontFamily: '"Times New Roman", Times, serif' }}
+                    >Thẻ</button>
+                    <button
+                      onClick={() => setPaymentMethod('qr_code')}
+                      style={{ flex: 1, padding: '10px', borderRadius: '6px', border: paymentMethod === 'qr_code' ? '2px solid #e85d04' : '1px solid #ddd', background: paymentMethod === 'qr_code' ? '#e85d0415' : '#fff', color: paymentMethod === 'qr_code' ? '#e85d04' : '#666', fontWeight: 'bold', fontFamily: '"Times New Roman", Times, serif' }}
+                    >QR Code</button>
+                    <button
+                      onClick={() => setPaymentMethod('cash')}
+                      style={{ flex: 1, padding: '10px', borderRadius: '6px', border: paymentMethod === 'cash' ? '2px solid #e85d04' : '1px solid #ddd', background: paymentMethod === 'cash' ? '#e85d0415' : '#fff', color: paymentMethod === 'cash' ? '#e85d04' : '#666', fontWeight: 'bold', fontFamily: '"Times New Roman", Times, serif' }}
+                    >Tiền Mặt</button>
+                  </div>
+                  <button
+                    onClick={() => handlePayment(selectedOrder.id, paymentMethod)}
+                    disabled={loading || !paymentMethod}
+                    style={{
+                      padding: '14px',
+                      background: (loading || !paymentMethod) ? '#999' : '#10b981',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: (loading || !paymentMethod) ? 'not-allowed' : 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem',
+                      marginTop: '8px',
+                      fontFamily: '"Times New Roman", Times, serif'
+                    }}
+                  >
+                    Thanh Toán
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
