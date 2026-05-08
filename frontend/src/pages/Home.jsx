@@ -507,16 +507,7 @@ export default function Home({ onLogin }) {
             <span>OrderFood</span>
           </div>
           <div style={styles.headerLinks}>
-            {!tableId && (
-              <>
-                <Link to="/scan" style={{...styles.headerLink, textDecoration: 'none'}} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                  🔍 Quét QR
-                </Link>
-                <Link to="/login" style={{...styles.headerLink, textDecoration: 'none'}} onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'} onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}>
-                  👤 Đăng nhập
-                </Link>
-              </>
-            )}
+            {/* Đã gỡ bỏ các nút Header theo yêu cầu */}
           </div>
         </div>
       </div>
@@ -540,54 +531,57 @@ export default function Home({ onLogin }) {
             Hệ thống đặt món thông minh cho nhà hàng. Quét mã QR, chọn món, thanh toán - chỉ trong vài giây!
           </p>
           <div style={{ ...styles.heroButtons, flexDirection: 'column', alignItems: 'center' }}>
-            <Link 
-              to={tableId ? `/table/${tableId}/menu` : "/scan"}
-              style={styles.primaryBtn}
-              onMouseEnter={(e) => handlePrimaryHover(e, true)}
-              onMouseLeave={(e) => handlePrimaryHover(e, false)}
-            >
-              <Zap size={20} /> Đặt món ngay
-            </Link>
-            {!tableId && (
+            {tableId ? (
+              <>
+                <Link 
+                  to={`/table/${tableId}/menu`}
+                  style={styles.primaryBtn}
+                  onMouseEnter={(e) => handlePrimaryHover(e, true)}
+                  onMouseLeave={(e) => handlePrimaryHover(e, false)}
+                >
+                  <Zap size={20} /> Đặt món ngay
+                </Link>
+                
+                {/* Quick Actions */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '16px', gap: '16px', width: '100%' }}>
+                  <button
+                    onClick={() => setShowStaffModal(true)}
+                    style={styles.secondaryBtn}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
+                  >
+                    <User size={20} /> Gọi Nhân Viên
+                  </button>
+
+                  <button
+                    onClick={() => setShowRatingModal(true)}
+                    style={styles.secondaryBtn}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
+                  >
+                    <Star size={20} /> Đánh Giá
+                  </button>
+
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    style={styles.secondaryBtn}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
+                    onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
+                  >
+                    <Phone size={20} /> Gọi Thanh Toán
+                  </button>
+                </div>
+              </>
+            ) : (
               <Link 
                 to="/login"
-                style={styles.secondaryBtn}
-                onMouseEnter={(e) => handleSecondaryHover(e, true)}
-                onMouseLeave={(e) => handleSecondaryHover(e, false)}
+                style={styles.primaryBtn}
+                onMouseEnter={(e) => handlePrimaryHover(e, true)}
+                onMouseLeave={(e) => handlePrimaryHover(e, false)}
               >
                 <Star size={20} /> Quản lý nhà hàng
               </Link>
             )}
-          </div>
-
-          {/* Quick Actions */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '16px', gap: '16px' }}>
-            <button
-              onClick={() => setShowStaffModal(true)}
-              style={styles.secondaryBtn}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
-            >
-              <User size={20} /> Gọi Nhân Viên
-            </button>
-
-            <button
-              onClick={() => setShowRatingModal(true)}
-              style={styles.secondaryBtn}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
-            >
-              <Star size={20} /> Đánh Giá
-            </button>
-
-            <button
-              onClick={() => setShowPaymentModal(true)}
-              style={styles.secondaryBtn}
-              onMouseEnter={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.25)', transform: 'translateY(-2px)' })}
-              onMouseLeave={(e) => Object.assign(e.currentTarget.style, { background: 'rgba(255,255,255,0.15)', transform: 'translateY(0)' })}
-            >
-              <Phone size={20} /> Gọi Thanh Toán
-            </button>
           </div>
         </div>
       </div>
