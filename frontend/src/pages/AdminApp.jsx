@@ -6,6 +6,7 @@ export default function AdminApp() {
   const [tables, setTables] = useState([]);
   const [users, setUsers] = useState([]);
   const [menuConfig, setMenuConfig] = useState(false);
+  const [role, setRole] = useState('cashier');
   
   // Create user form state
   const [username, setUsername] = useState('');
@@ -26,11 +27,12 @@ export default function AdminApp() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(ADMIN_USERS_API.CREATE_USER, { username, password, name, role: 'staff' });
+      await axios.post(ADMIN_USERS_API.CREATE_USER, { username, password, name, role });
       alert('Tạo tài khoản thành công!');
       setUsername('');
       setPassword('');
       setName('');
+      setRole('cashier');
       fetchData();
     } catch (err) {
       alert(err.response?.data?.error || 'Lỗi khi tạo tài khoản');
@@ -48,11 +50,17 @@ export default function AdminApp() {
 
       <div style={{ display: 'grid', gap: '32px' }}>
         <section className="glass-panel" style={{ padding: '24px', borderRadius: 'var(--radius-lg)' }}>
-          <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>Tạo tài khoản Nhân viên (Bếp / Phục vụ)</h2>
+          <h2 style={{ marginBottom: '20px', fontSize: '20px' }}>Tạo tài khoản nhân sự</h2>
           <form style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }} onSubmit={handleCreateUser}>
             <input type="text" placeholder="Tên đăng nhập" value={username} onChange={e => setUsername(e.target.value)} required style={{ padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'white', flex: 1, minWidth: '150px' }} />
             <input type="password" placeholder="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} required style={{ padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'white', flex: 1, minWidth: '150px' }} />
             <input type="text" placeholder="Tên nhân viên (VD: Nguyễn Văn A)" value={name} onChange={e => setName(e.target.value)} required style={{ padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'white', flex: 1, minWidth: '150px' }} />
+            <select value={role} onChange={e => setRole(e.target.value)} style={{ padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'white', minWidth: '150px' }}>
+              <option value="cashier">Thu ngân</option>
+              <option value="kitchen">Bếp</option>
+              <option value="staff">Nhân viên</option>
+              <option value="admin">Admin</option>
+            </select>
             <button type="submit" className="btn-primary" style={{ padding: '10px 20px', minWidth: '120px' }}>Tạo Mới</button>
           </form>
           

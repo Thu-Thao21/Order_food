@@ -121,13 +121,13 @@ export default function Login({onLogin}) {
     try {
       const res = await axios.post(AUTH_API.LOGIN, { username, password });
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      const userRole = res.data.user.role.toLowerCase();
+      const userRole = (res.data.user.role || '').toLowerCase();
 
-      if (userRole === 'admin') {
-        onLogin();
+      if (userRole === 'admin' || userRole === 'cashier') {
+        onLogin(res.data.user);
         navigate('/admin');
       } else {
-        onLogin();
+        onLogin(res.data.user);
         navigate('/kitchen');
       }
     } catch (err) {

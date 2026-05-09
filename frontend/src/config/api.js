@@ -1,11 +1,14 @@
 // API Configuration - Tập trung quản lý tất cả endpoints
 
 const PRODUCTION_URL = 'https://vannthangg.onrender.com';
+const LOCAL_URL = 'http://localhost:3000';
 
-// Luôn dùng server chung để đồng bộ dữ liệu giữa các máy/devices.
-// Nếu sau này cần chạy local, chỉ cần đổi lại biến này hoặc cấu hình env riêng.
-export const SOCKET_URL = PRODUCTION_URL;
-export const API_BASE_URL = `${PRODUCTION_URL}/api`;
+// Dev dùng local backend để test dữ liệu local (seed/migration).
+// Production dùng server deploy. Có thể override bằng VITE_API_ORIGIN.
+const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || (import.meta.env.DEV ? LOCAL_URL : PRODUCTION_URL);
+
+export const SOCKET_URL = API_ORIGIN;
+export const API_BASE_URL = `${API_ORIGIN}/api`;
 
 // ===== AUTH APIs =====
 export const AUTH_API = {

@@ -120,6 +120,7 @@ async function main() {
   // Hash passwords trước khi lưu
   const hashedPasswords = await Promise.all([
     bcrypt.hash('admin123', 10),
+    bcrypt.hash('cashier123', 10),
     bcrypt.hash('staff123', 10),
     bcrypt.hash('staff123', 10),
     bcrypt.hash('kitchen123', 10),
@@ -136,8 +137,16 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        username: 'staff1',
+        username: 'cashier1',
         password: hashedPasswords[1],
+        name: 'Thu ngân 1',
+        role: 'cashier'
+      }
+    }),
+    prisma.user.create({
+      data: {
+        username: 'staff1',
+        password: hashedPasswords[2],
         name: 'Nhân viên 1',
         role: 'staff'
       }
@@ -145,7 +154,7 @@ async function main() {
     prisma.user.create({
       data: {
         username: 'staff2',
-        password: hashedPasswords[2],
+        password: hashedPasswords[3],
         name: 'Nhân viên 2',
         role: 'staff'
       }
@@ -153,9 +162,9 @@ async function main() {
     prisma.user.create({
       data: {
         username: 'kitchen',
-        password: hashedPasswords[3],
+        password: hashedPasswords[4],
         name: 'Bếp',
-        role: 'staff'
+        role: 'kitchen'
       }
     }),
   ]);
