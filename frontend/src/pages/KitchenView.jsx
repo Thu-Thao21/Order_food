@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { ADMIN_ORDERS_API, ADMIN_MENU_API, SOCKET_URL, API_BASE_URL } from '../config/api';
+import AdminLayout from '../components/AdminLayout';
 
 const styles = {
   page: {
@@ -298,83 +299,57 @@ export default function KitchenView({ onLogout }) {
     }
   };
 
-  return (
-    <div style={{ ...styles.page, background: pageBg, color: textMain }}>
-      <header style={styles.header}>
-        <div>
-          <h1 style={styles.heading}>Bếp</h1>
-          <p style={{ ...styles.subtitle, color: textMuted }}></p>
-        </div>
-        <div style={{ display: 'grid', gap: '10px', textAlign: 'right' }}>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '10px 16px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '0.95rem',
-                fontWeight: '600',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-              Đăng xuất
-            </button>
-          </div>
-          <div style={{ color: textMuted }}>Cập nhật tự động mỗi 5 giây</div>
-          <div style={{ background: 'rgba(255, 133, 0, 0.15)', padding: '10px 14px', borderRadius: '999px', color: '#ffb366', fontWeight: 700 }}>Đơn đang chờ: {orders.length}</div>
-        </div>
-      </header>
+  const tabsContainerStyle = {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '28px',
+    borderBottom: '2px solid #e85d0420',
+    paddingBottom: '0',
+    overflowX: 'auto',
+    fontFamily: '"Times New Roman", Times, serif'
+  };
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: `1px solid ${tabBorderColor}`, paddingBottom: '12px' }}>
+  const tabButtonStyle = (isActive) => ({
+    padding: '10px 20px',
+    background: 'none',
+    border: 'none',
+    borderBottom: isActive ? '3px solid #e85d04' : '3px solid transparent',
+    color: isActive ? '#e85d04' : '#999',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    fontWeight: isActive ? '700' : '600',
+    transition: 'all 0.2s',
+    marginBottom: '-2px',
+    whiteSpace: 'nowrap',
+    fontFamily: '"Times New Roman", Times, serif'
+  });
+
+  return (
+    <AdminLayout title="Bếp" onLogout={handleLogout}>
+      {/* Cập nhật trạng thái */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px', marginBottom: '20px', alignItems: 'center' }}>
+        <div style={{ color: textMuted, fontSize: '0.9rem' }}>Cập nhật tự động mỗi 5 giây</div>
+        <div style={{ background: 'rgba(232, 93, 4, 0.1)', padding: '8px 16px', borderRadius: '8px', color: '#e85d04', fontWeight: 700, border: '1px solid #e85d0430' }}>
+          Đơn đang chờ: {orders.length}
+        </div>
+      </div>
+
+      <div style={tabsContainerStyle}>
         <button
           onClick={() => setActiveTab('orders')}
-          style={{
-            padding: '10px 18px',
-            border: 'none',
-            background: activeTab === 'orders' ? 'rgba(255, 133, 0, 0.15)' : 'transparent',
-            color: activeTab === 'orders' ? '#ff8500' : textMuted,
-            borderBottom: activeTab === 'orders' ? '2px solid #ff8500' : 'none',
-            cursor: 'pointer',
-            fontWeight: 700,
-            transition: 'all 0.3s ease'
-          }}
+          style={tabButtonStyle(activeTab === 'orders')}
         >
           Đơn đang chờ ({orders.length})
         </button>
         <button
           onClick={() => setActiveTab('completed')}
-          style={{
-            padding: '10px 18px',
-            border: 'none',
-            background: activeTab === 'completed' ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
-            color: activeTab === 'completed' ? '#10b981' : textMuted,
-            borderBottom: activeTab === 'completed' ? '2px solid #10b981' : 'none',
-            cursor: 'pointer',
-            fontWeight: 700,
-            transition: 'all 0.3s ease'
-          }}
+          style={tabButtonStyle(activeTab === 'completed')}
         >
           Đã hoàn thành ({completedOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
-          style={{
-            padding: '10px 18px',
-            border: 'none',
-            background: activeTab === 'inventory' ? 'rgba(255, 133, 0, 0.15)' : 'transparent',
-            color: activeTab === 'inventory' ? '#ff8500' : textMuted,
-            borderBottom: activeTab === 'inventory' ? '2px solid #ff8500' : 'none',
-            cursor: 'pointer',
-            fontWeight: 700,
-            transition: 'all 0.3s ease'
-          }}
+          style={tabButtonStyle(activeTab === 'inventory')}
         >
           Quản lý hàng
         </button>
@@ -577,6 +552,6 @@ export default function KitchenView({ onLogout }) {
       )}
 
       {error && <div style={styles.footer}>{error}</div>}
-    </div>
+    </AdminLayout>
   );
 }

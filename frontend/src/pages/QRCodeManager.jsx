@@ -20,7 +20,18 @@ export default function QRCodeManager({ onLogout }) {
   const fetchTables = async () => {
     try {
       const res = await axios.get(ADMIN_TABLES_API.GET_ALL_TABLES);
-      setTables(res.data || []);
+      const sortedTables = (res.data || []).sort((a, b) => {
+        // Trích xuất số từ tên bàn nếu có (ví dụ "Bàn 1" -> 1)
+        const getNumber = (name) => {
+          const match = name.match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+        const numA = getNumber(a.name);
+        const numB = getNumber(b.name);
+        if (numA !== numB) return numA - numB;
+        return a.id - b.id;
+      });
+      setTables(sortedTables);
       setError(null);
     } catch (err) {
       console.error('Error:', err);
@@ -117,7 +128,6 @@ export default function QRCodeManager({ onLogout }) {
     <div style={{ minHeight: '100vh', backgroundColor: '#fafaf8', color: '#0f0e2e', padding: '20px', fontFamily: '"Times New Roman", Times, serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1 style={{ margin: 0, fontSize: '2rem', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>Quản lý Mã QR Bàn</h1>
-        <button onClick={() => { localStorage.removeItem('user'); window.location.href = '/login'; }} style={{ background: '#e85d04', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontFamily: '"Times New Roman", Times, serif', fontWeight: '600' }}>Đăng xuất</button>
       </div>
 
       <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'center', border: '2px solid #e85d0420', fontFamily: '"Times New Roman", Times, serif' }}>
