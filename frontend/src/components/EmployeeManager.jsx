@@ -6,7 +6,7 @@ export default function EmployeeManager() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [role, setRole] = useState('Kitchen');
+  const [role, setRole] = useState('cashier');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -16,9 +16,25 @@ export default function EmployeeManager() {
   const [deleteLoading, setDeleteLoading] = useState(null);
 
   // Edit state
-  const [editEmp, setEditEmp] = useState(null); // null = không đang sửaa
+  const [editEmp, setEditEmp] = useState(null); // null = không đang sửa
   const [editForm, setEditForm] = useState({ username: '', name: '', role: 'Kitchen', password: '' });
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const getRoleLabel = (value) => {
+    const normalized = (value || '').toLowerCase();
+    if (normalized === 'admin') return 'Admin';
+    if (normalized === 'cashier') return 'Thu ngân';
+    if (normalized === 'kitchen') return 'Bếp';
+    return 'Nhân viên';
+  };
+
+  const getRoleColor = (value) => {
+    const normalized = (value || '').toLowerCase();
+    if (normalized === 'admin') return { bg: '#f5f3ff', fg: '#7c3aed', border: '#7c3aed30' };
+    if (normalized === 'cashier') return { bg: '#f0f9ff', fg: '#0284c7', border: '#0284c730' };
+    if (normalized === 'kitchen') return { bg: '#fff7ed', fg: '#e85d04', border: '#e85d0430' };
+    return { bg: '#f8fafc', fg: '#334155', border: '#cbd5e130' };
+  };
 
   useEffect(() => {
     loadEmployees();
@@ -52,7 +68,7 @@ export default function EmployeeManager() {
       await axios.post(ADMIN_USERS_API.CREATE_USER, { username, password, name, role });
       setMessage('Tạo tài khoản nhân viên thành công!');
       setMessageType('success');
-      setUsername(''); setPassword(''); setName(''); setRole('Kitchen');
+      setUsername(''); setPassword(''); setName(''); setRole('cashier');
       await loadEmployees();
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
@@ -88,7 +104,7 @@ export default function EmployeeManager() {
 
   const handleEditClose = () => {
     setEditEmp(null);
-    setEditForm({ username: '', name: '', role: 'Kitchen', password: '' });
+    setEditForm({ username: '', name: '', role: 'cashier', password: '' });
   };
 
   const handleEditSubmit = async (e) => {
@@ -199,8 +215,7 @@ export default function EmployeeManager() {
                 >
                   <option value="Kitchen">Bếp</option>
                   <option value="admin">Admin</option>
-                  <option value="staff">Nhân viên Phục vụ</option>
-                  <option value="cashier">Thu ngân</option>
+                  <option value="staff">Nhân viên</option>
                 </select>
               </div>
               <div>
@@ -298,8 +313,7 @@ export default function EmployeeManager() {
           >
             <option value="Kitchen">Bếp</option>
             <option value="admin">Admin</option>
-            <option value="staff">Nhân viên Phục vụ</option>
-            <option value="cashier">Thu ngân</option>
+            <option value="staff">Nhân viên</option>
           </select>
           <button
             type="submit"
@@ -375,15 +389,15 @@ export default function EmployeeManager() {
                     <td style={{ padding: '15px 12px', color: '#0f0e2e' }}>{emp.name}</td>
                     <td style={{ padding: '15px 12px' }}>
                       <span style={{
-                        background: emp.role === 'Kitchen' ? '#fff7ed' : emp.role === 'admin' ? '#f5f3ff' : emp.role === 'cashier' ? '#f0fdf4' : '#f0f9ff',
-                        color: emp.role === 'Kitchen' ? '#e85d04' : emp.role === 'admin' ? '#7c3aed' : emp.role === 'cashier' ? '#16a34a' : '#0284c7',
-                        border: `1px solid ${emp.role === 'Kitchen' ? '#e85d0430' : emp.role === 'admin' ? '#7c3aed30' : emp.role === 'cashier' ? '#16a34a30' : '#0284c730'}`,
+                        background: emp.role === 'Kitchen' ? '#fff7ed' : emp.role === 'admin' ? '#f5f3ff' : '#f0f9ff',
+                        color: emp.role === 'Kitchen' ? '#e85d04' : emp.role === 'admin' ? '#7c3aed' : '#0284c7',
+                        border: `1px solid ${emp.role === 'Kitchen' ? '#e85d0430' : emp.role === 'admin' ? '#7c3aed30' : '#0284c730'}`,
                         padding: '4px 10px',
                         borderRadius: '6px',
                         fontSize: '0.8rem',
                         fontWeight: '700'
                       }}>
-                        {emp.role === 'Kitchen' ? 'Bếp' : emp.role === 'admin' ? 'Admin' : emp.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'}
+                        {emp.role === 'Kitchen' ? 'Bếp' : emp.role === 'admin' ? 'Admin' : 'Nhân viên'}
                       </span>
                     </td>
                     <td style={{ padding: '15px 12px', color: '#666' }}>{formatDate(emp.createdAt)}</td>

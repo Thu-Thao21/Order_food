@@ -6,7 +6,7 @@ import AdminLayout from '../components/AdminLayout';
 import EmployeeManager from '../components/EmployeeManager';
 import AdminMenuQR from './AdminMenuQR';
 import CashierPage from './CashierPage';
-import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL, RATING_API, API_BASE_URL } from '../config/api';
+import { ADMIN_DASHBOARD_API, ADMIN_ORDERS_API, ADMIN_MENU_API, ADMIN_USERS_API, SOCKET_URL, RATING_API } from '../config/api';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend
 } from 'recharts';
@@ -14,6 +14,19 @@ import {
 export default function AdminDashboard({ onLogout }) {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+  const currentRole = (currentUser?.role || '').toLowerCase();
+  const isAdmin = currentRole === 'admin';
+  const availableTabs = isAdmin
+    ? ['dashboard', 'cashier', 'inventory', 'employee', 'ratings', 'menuqr']
+    : ['dashboard', 'cashier', 'inventory'];
+  const availableTabsKey = availableTabs.join('|');
   
   // --- STATES DỮ LIỆU ---
   const [dailyRevenue, setDailyRevenue] = useState(null);
@@ -21,10 +34,8 @@ export default function AdminDashboard({ onLogout }) {
   const [activeTables, setActiveTables] = useState(0);
   const [employees, setEmployees] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
-  const [completedOrdersCount, setCompletedOrdersCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [cashierSubTab, setCashierSubTab] = useState('waiting');
   
   // --- INVENTORY STATES ---
   const [menuItems, setMenuItems] = useState([]);
@@ -67,15 +78,20 @@ export default function AdminDashboard({ onLogout }) {
   }, [searchParams]);
 
   useEffect(() => {
+    if (!availableTabs.includes(activeTab)) {
+      setActiveTab(availableTabs[0]);
+    }
+  }, [activeTab, availableTabsKey]);
+
+  useEffect(() => {
     const fetchMetrics = async () => {
       try {
         setLoading(true);
-        const [dailyRes, summaryRes, pendingRes, empRes, compRes] = await Promise.all([
+        const [dailyRes, summaryRes, pendingRes, empRes] = await Promise.all([
           axios.get(ADMIN_DASHBOARD_API.GET_DAILY_REVENUE),
           axios.get(ADMIN_DASHBOARD_API.GET_REVENUE_SUMMARY),
           axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS),
-          axios.get(ADMIN_USERS_API.GET_ALL_USERS).catch(() => ({ data: [] })),
-          axios.get(`${API_BASE_URL}/admin/orders/completed`).catch(() => ({ data: [] }))
+          axios.get(ADMIN_USERS_API.GET_ALL_USERS).catch(() => ({ data: [] }))
         ]);
         setDailyRevenue(dailyRes.data.totalRevenue ?? 0);
         setSummaryData(summaryRes.data || []);
@@ -83,7 +99,6 @@ export default function AdminDashboard({ onLogout }) {
         setActiveTables(Array.from(tablesActive).filter(Boolean).length);
         setRecentOrders((pendingRes.data || []).slice(0, 5));
         setEmployees(empRes.data || []);
-        setCompletedOrdersCount((compRes.data || []).length);
         setError(null);
       } catch (err) {
         console.error(err);
@@ -227,10 +242,8 @@ export default function AdminDashboard({ onLogout }) {
   });
 
   // --- GIAO DIỆN TRANG CHỦ (THỐNG KÊ + BẢNG NHÂN VIÊN) ---
-  const StatCard = ({ label, value, icon, color = '#e85d04', onClick }) => (
-    <div 
-      onClick={onClick}
-      style={{
+  const StatCard = ({ label, value, icon, color = '#e85d04' }) => (
+    <div style={{
       background: '#fff',
       border: `2px solid ${color}30`,
       padding: '24px 20px',
@@ -270,9 +283,9 @@ export default function AdminDashboard({ onLogout }) {
       </header>
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '36px' }}>
         <StatCard label="Doanh thu hôm nay" value={formatCurrency(dailyRevenue ?? 0)} icon="" color="#10b981" />
-        <StatCard label="Bàn hoạt động" value={activeTables} icon="" color="#f59e0b" onClick={() => { setActiveTab('cashier'); setCashierSubTab('waiting'); }} />
-        <StatCard label="Đơn chờ" value={recentOrders.length} icon="" color="#06b6d4" onClick={() => { setActiveTab('cashier'); setCashierSubTab('waiting'); }} />
-        <StatCard label="Tổng bill đã TT" value={completedOrdersCount} icon="" color="#8b5cf6" onClick={() => { setActiveTab('cashier'); setCashierSubTab('completed'); }} />
+        <StatCard label="Bàn hoạt động" value={activeTables} icon="" color="#f59e0b" />
+        <StatCard label="Nhân viên" value={employees.length} icon="" color="#e85d04" />
+        <StatCard label="Đơn chờ" value={recentOrders.length} icon="" color="#06b6d4" />
       </section>
 
       {/* Biểu đồ */}
@@ -304,7 +317,40 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </section>
 
-
+      {/* Đơn hàng gần đây */}
+      {recentOrders.length > 0 && (
+        <section style={{ background: '#fff', padding: '28px', borderRadius: '12px', marginBottom: '28px', border: '2px solid #e85d0420', boxShadow: '0 4px 12px rgba(232, 93, 4, 0.08)' }}>
+          <h2 style={{ color: '#e85d04', margin: '0 0 20px 0', fontSize: '1.4rem', fontWeight: '800', fontFamily: '"Times New Roman", Times, serif' }}>Đơn hàng gần đây</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '12px' }}>
+            {recentOrders.map((order, idx) => (
+              <div key={idx} style={{
+                background: '#f5f5f5',
+                border: '1px solid #e5e5e5',
+                padding: '18px',
+                borderRadius: '8px',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fff';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.borderColor = '#e85d04';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f5f5f5';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.borderColor = '#e5e5e5';
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '700', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{getTableLabel(order) || (order.tableId ? `Bàn ${order.tableId}` : '')}</span>
+                  <span style={{ background: '#e85d04', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>Chờ</span>
+                </div>
+                <p style={{ color: '#666', margin: 0, fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{order.items?.length || 0} món</p>
+                <p style={{ color: '#e85d04', margin: '10px 0 0', fontSize: '1.1rem', fontWeight: '700', fontFamily: '"Times New Roman", Times, serif' }}>{formatCurrency(order.totalAmount || 0)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 
@@ -525,6 +571,44 @@ export default function AdminDashboard({ onLogout }) {
                     {new Date(rating.createdAt).toLocaleString('vi-VN')}
                   </div>
 
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {rating.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => updateRatingStatus(rating.id, 'reviewed')}
+                          disabled={ratingActionLoading === rating.id}
+                          style={{
+                            flex: 1,
+                            padding: '8px 12px',
+                            background: '#10b981',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: ratingActionLoading === rating.id ? 'not-allowed' : 'pointer',
+                            opacity: ratingActionLoading === rating.id ? 0.7 : 1,
+                            fontWeight: 600,
+                            fontSize: '0.9rem'
+                          }}
+                        >
+                          ✓ Đã Xem
+                        </button>
+                      </>
+                    )}
+                    {rating.status === 'reviewed' && (
+                      <div style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        background: '#10b981',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        fontSize: '0.9rem'
+                      }}>
+                        ✓ Đã Xem
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -535,7 +619,7 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   return (
-    <AdminLayout title="Admin" onLogout={onLogout}>
+    <AdminLayout title={isAdmin ? 'Admin' : 'Thu ngân'} onLogout={onLogout}>
       <div style={tabsContainerStyle}>
         <button
           onClick={() => setActiveTab('dashboard')}
@@ -555,38 +639,44 @@ export default function AdminDashboard({ onLogout }) {
         >
           Kho hàng
         </button>
-        <button
-          onClick={() => setActiveTab('employee')}
-          style={tabButtonStyle(activeTab === 'employee')}
-        >
-          Nhân viên
-        </button>
-        <button
-          onClick={() => setActiveTab('ratings')}
-          style={tabButtonStyle(activeTab === 'ratings')}
-        >
-          ⭐ Đánh Giá
-        </button>
-        <button
-          onClick={() => setActiveTab('menuqr')}
-          style={tabButtonStyle(activeTab === 'menuqr')}
-        >
-          Menu & QR Code
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('employee')}
+            style={tabButtonStyle(activeTab === 'employee')}
+          >
+            Nhân viên
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('ratings')}
+            style={tabButtonStyle(activeTab === 'ratings')}
+          >
+            ⭐ Đánh Giá
+          </button>
+        )}
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('menuqr')}
+            style={tabButtonStyle(activeTab === 'menuqr')}
+          >
+            Menu & QR Code
+          </button>
+        )}
       </div>
 
       {activeTab === 'dashboard' && renderDashboard()}
       {activeTab === 'cashier' && (
-        <CashierPage initialTab={cashierSubTab} />
+        <CashierPage />
       )}
       {activeTab === 'inventory' && renderInventory()}
-      {activeTab === 'employee' && (
+      {isAdmin && activeTab === 'employee' && (
         <div style={{ margin: '0 auto' }}>
           <EmployeeManager />
         </div>
       )}
-      {activeTab === 'ratings' && renderRatings()}
-      {activeTab === 'menuqr' && (
+      {isAdmin && activeTab === 'ratings' && renderRatings()}
+      {isAdmin && activeTab === 'menuqr' && (
         <AdminMenuQR />
       )}
     </AdminLayout>

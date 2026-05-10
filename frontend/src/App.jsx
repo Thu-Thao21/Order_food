@@ -19,26 +19,39 @@ import AdminMenuQR from './pages/AdminMenuQR';
 import DashboardApp from './pages/DashboardApp';
 import CashierPage from './pages/CashierPage';
 
-function ProtectedRoute({ isAuthenticated }) {
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+};
+
+function ProtectedRoute({ isAuthenticated, allowedRoles = [], userRole, fallbackRoute = '/login' }) {
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (allowedRoles.length > 0 && !allowedRoles.includes((userRole || '').toLowerCase())) {
+    return <Navigate to={fallbackRoute} replace />;
+  }
+
   return <Outlet />;
 }
 
 function App() {
-  // Lục tìm trong bộ nhớ xem có user không, nếu có thì là true, không có thì là false
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('user'));
+  const [currentUser, setCurrentUser] = useState(getStoredUser);
+  const isAuthenticated = !!currentUser;
+  const userRole = (currentUser?.role || '').toLowerCase();
 
-  const handleLogin = () => {
-    setIsAuthenticated(true);
+  const handleLogin = (user) => {
+    setCurrentUser(user || getStoredUser());
   };
 
   const handleLogout = () => {
-    setIsAuthenticated(false);
+    setCurrentUser(null);
   };
 
   return (
@@ -47,9 +60,17 @@ function App() {
         <Route path="/" element={<Home onLogin={handleLogin} />} />
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/scan" element={<ScanQR />} />
-        <Route path="/kitchen" element={<KitchenView onLogout={handleLogout} />} />
 
-        <Route element={<ProtectedRoute isAuthenticated={isAuthenticated} />}>
+        <Route
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              allowedRoles={['admin', 'cashier']}
+              userRole={userRole}
+              fallbackRoute={['staff', 'kitchen'].includes(userRole) ? '/kitchen' : '/login'}
+            />
+          }
+        >
           <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
           <Route path="/admin/menu" element={<Navigate to="/admin?tab=menuqr" replace />} />
           <Route path="/admin/qr" element={<Navigate to="/admin?tab=menuqr" replace />} />
@@ -63,6 +84,19 @@ function App() {
               <CashierPage />
             </div>
           } />
+        </Route>
+
+        <Route
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              allowedRoles={['admin', 'staff', 'kitchen']}
+              userRole={userRole}
+              fallbackRoute={['cashier'].includes(userRole) ? '/admin' : '/login'}
+            />
+          }
+        >
+          <Route path="/kitchen" element={<KitchenView onLogout={handleLogout} />} />
         </Route>
 
         <Route path="/table/:tableId" element={<Home onLogin={handleLogin} />} />
