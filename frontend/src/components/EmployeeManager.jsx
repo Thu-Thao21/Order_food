@@ -16,7 +16,7 @@ export default function EmployeeManager() {
   const [deleteLoading, setDeleteLoading] = useState(null);
 
   // Edit state
-  const [editEmp, setEditEmp] = useState(null); // null = không đang sửa
+  const [editEmp, setEditEmp] = useState(null); // null = không đang sửaa
   const [editForm, setEditForm] = useState({ username: '', name: '', role: 'Kitchen', password: '' });
   const [editSubmitting, setEditSubmitting] = useState(false);
 
