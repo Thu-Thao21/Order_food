@@ -199,7 +199,8 @@ export default function EmployeeManager() {
                 >
                   <option value="Kitchen">Bếp</option>
                   <option value="admin">Admin</option>
-                  <option value="staff">Nhân viên</option>
+                  <option value="staff">Nhân viên Phục vụ</option>
+                  <option value="cashier">Thu ngân</option>
                 </select>
               </div>
               <div>
@@ -297,7 +298,8 @@ export default function EmployeeManager() {
           >
             <option value="Kitchen">Bếp</option>
             <option value="admin">Admin</option>
-            <option value="staff">Nhân viên</option>
+            <option value="staff">Nhân viên Phục vụ</option>
+            <option value="cashier">Thu ngân</option>
           </select>
           <button
             type="submit"
@@ -373,15 +375,15 @@ export default function EmployeeManager() {
                     <td style={{ padding: '15px 12px', color: '#0f0e2e' }}>{emp.name}</td>
                     <td style={{ padding: '15px 12px' }}>
                       <span style={{
-                        background: emp.role === 'Kitchen' ? '#fff7ed' : emp.role === 'admin' ? '#f5f3ff' : '#f0f9ff',
-                        color: emp.role === 'Kitchen' ? '#e85d04' : emp.role === 'admin' ? '#7c3aed' : '#0284c7',
-                        border: `1px solid ${emp.role === 'Kitchen' ? '#e85d0430' : emp.role === 'admin' ? '#7c3aed30' : '#0284c730'}`,
+                        background: emp.role === 'Kitchen' ? '#fff7ed' : emp.role === 'admin' ? '#f5f3ff' : emp.role === 'cashier' ? '#f0fdf4' : '#f0f9ff',
+                        color: emp.role === 'Kitchen' ? '#e85d04' : emp.role === 'admin' ? '#7c3aed' : emp.role === 'cashier' ? '#16a34a' : '#0284c7',
+                        border: `1px solid ${emp.role === 'Kitchen' ? '#e85d0430' : emp.role === 'admin' ? '#7c3aed30' : emp.role === 'cashier' ? '#16a34a30' : '#0284c730'}`,
                         padding: '4px 10px',
                         borderRadius: '6px',
                         fontSize: '0.8rem',
                         fontWeight: '700'
                       }}>
-                        {emp.role === 'Kitchen' ? 'Bếp' : emp.role === 'admin' ? 'Admin' : 'Nhân viên'}
+                        {emp.role === 'Kitchen' ? 'Bếp' : emp.role === 'admin' ? 'Admin' : emp.role === 'cashier' ? 'Thu ngân' : 'Nhân viên'}
                       </span>
                     </td>
                     <td style={{ padding: '15px 12px', color: '#666' }}>{formatDate(emp.createdAt)}</td>

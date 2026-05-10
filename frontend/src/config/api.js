@@ -48,6 +48,9 @@ export const ADMIN_USERS_API = {
 // ===== ADMIN - TABLES APIs (QRCodeManager, ScanQR) =====
 export const ADMIN_TABLES_API = {
   GET_ALL_TABLES: `${API_BASE_URL}/admin/tables`,
+  MERGE_TABLES: `${API_BASE_URL}/admin/tables/merge`,
+  SPLIT_TABLE: `${API_BASE_URL}/admin/tables/split`,
+  UNMERGE_TABLES: `${API_BASE_URL}/admin/tables/unmerge`,
 };
 
 // ===== ADMIN - DASHBOARD APIs (AdminDashboard) =====

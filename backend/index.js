@@ -102,7 +102,18 @@ app.get('/api/table/:id/qr', async (req, res) => {
 app.get('/api/table/:id/menu', async (req, res) => {
   try {
     const tableId = parseInt(req.params.id);
-    const table = await prisma.table.findUnique({ where: { id: tableId } });
+    let table = await prisma.table.findUnique({ where: { id: tableId } });
+    
+    if (table && table.mergedWithId) {
+      const mainTable = await prisma.table.findUnique({ where: { id: table.mergedWithId } });
+      if (mainTable) {
+        table.originalId = table.id;
+        table.originalName = table.name;
+        table.id = mainTable.id;
+        table.name = `${mainTable.name} (Gộp chung với ${table.name})`;
+      }
+    }
+
     const categories = await prisma.category.findMany({
       include: { items: true },
       orderBy: { sort: 'asc' }
@@ -162,6 +173,14 @@ app.put('/api/orders/:id/payment', async (req, res) => {
       },
       include: { table: true, items: { include: { menuItem: true } } }
     });
+
+    if (paymentStatus === 'paid') {
+      // Khi thanh toán xong, tự động gỡ liên kết các bàn đã gộp với bàn này
+      await prisma.table.updateMany({
+        where: { mergedWithId: order.tableId },
+        data: { mergedWithId: null }
+      });
+    }
 
     // Thông báo cập nhật
     io.emit('order-paid', order);
@@ -494,6 +513,164 @@ app.get('/api/admin/tables', async (req, res) => {
     orderBy: { id: 'asc' }
   });
   res.json(tables);
+});
+
+// === API GỘP/TÁCH BÀN ===
+// Nhóm bàn
+app.post('/api/admin/tables/merge', async (req, res) => {
+  try {
+    const { sourceTableIds, targetTableId } = req.body;
+    if (!sourceTableIds || !targetTableId || sourceTableIds.length === 0) {
+      return res.status(400).json({ error: 'Bàn không hợp lệ' });
+    }
+
+    // 1. Set mergedWithId cho các bàn nguồn
+    await prisma.table.updateMany({
+      where: { id: { in: sourceTableIds.map(Number) } },
+      data: { mergedWithId: Number(targetTableId) }
+    });
+
+    // 2. Chuyển tất cả đơn hàng hiện có của các bàn nguồn sang bàn đích
+    const sourceOrders = await prisma.order.findMany({
+      where: {
+        tableId: { in: sourceTableIds.map(Number) },
+        status: { notIn: ['completed', 'cancelled'] },
+        paymentStatus: { not: 'paid' }
+      }
+    });
+
+    if (sourceOrders.length > 0) {
+      await prisma.order.updateMany({
+        where: { id: { in: sourceOrders.map(o => o.id) } },
+        data: { tableId: Number(targetTableId) }
+      });
+      // Lấy lại các đơn đã cập nhật để gửi socket
+      const updatedOrders = await prisma.order.findMany({
+        where: { id: { in: sourceOrders.map(o => o.id) } },
+        include: { table: true, items: { include: { menuItem: true } } }
+      });
+      updatedOrders.forEach(order => io.emit('order-status-update', order));
+    }
+
+    res.json({ message: 'Nhóm bàn thành công' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Hủy nhóm bàn
+app.post('/api/admin/tables/unmerge', async (req, res) => {
+  try {
+    const { tableIds } = req.body;
+    if (!tableIds || tableIds.length === 0) {
+      return res.status(400).json({ error: 'Danh sách bàn không hợp lệ' });
+    }
+    await prisma.table.updateMany({
+      where: { id: { in: tableIds.map(Number) } },
+      data: { mergedWithId: null }
+    });
+    res.json({ message: 'Hủy nhóm bàn thành công' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Tách bàn
+app.post('/api/admin/tables/split', async (req, res) => {
+  try {
+    const { orderId, targetTableId, itemsToMove } = req.body;
+    // itemsToMove format: [{ orderItemId: 1, quantity: 2 }, ...]
+
+    if (!orderId || !targetTableId || !itemsToMove || itemsToMove.length === 0) {
+      return res.status(400).json({ error: 'Dữ liệu không hợp lệ' });
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id: Number(orderId) },
+      include: { items: { include: { menuItem: true } } }
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    let newOrderTotal = 0;
+    const newOrderItems = [];
+    let oldOrderTotalReduced = 0;
+
+    for (const moveReq of itemsToMove) {
+      const existingItem = order.items.find(i => i.id === moveReq.orderItemId);
+      if (existingItem && moveReq.quantity > 0 && moveReq.quantity <= existingItem.quantity) {
+        newOrderTotal += existingItem.menuItem.price * moveReq.quantity;
+        newOrderItems.push({
+          menuItemId: existingItem.menuItemId,
+          quantity: moveReq.quantity,
+          note: existingItem.note
+        });
+        oldOrderTotalReduced += existingItem.menuItem.price * moveReq.quantity;
+      }
+    }
+
+    if (newOrderItems.length === 0) {
+      return res.status(400).json({ error: 'Không có món nào hợp lệ để tách' });
+    }
+
+    // Dùng transaction
+    await prisma.$transaction(async (tx) => {
+      // 1. Tạo đơn mới
+      const createdOrder = await tx.order.create({
+        data: {
+          tableId: Number(targetTableId),
+          status: order.status,
+          orderType: order.orderType,
+          paymentStatus: order.paymentStatus,
+          total: newOrderTotal,
+          items: {
+            create: newOrderItems
+          }
+        },
+        include: { table: true, items: { include: { menuItem: true } } }
+      });
+
+      // 2. Cập nhật đơn cũ
+      for (const moveReq of itemsToMove) {
+        const existingItem = order.items.find(i => i.id === moveReq.orderItemId);
+        if (existingItem && moveReq.quantity > 0 && moveReq.quantity <= existingItem.quantity) {
+          if (moveReq.quantity === existingItem.quantity) {
+            await tx.orderItem.delete({ where: { id: existingItem.id } });
+          } else {
+            await tx.orderItem.update({
+              where: { id: existingItem.id },
+              data: { quantity: existingItem.quantity - moveReq.quantity }
+            });
+          }
+        }
+      }
+
+      // Cập nhật tổng tiền đơn cũ, hoặc xóa nếu không còn món nào
+      const remainingItems = await tx.orderItem.findMany({ where: { orderId: order.id } });
+      let oldOrder;
+      if (remainingItems.length === 0) {
+        await tx.order.delete({ where: { id: order.id } });
+        // Emit delete event via a special status if needed, or we just emit order-status-update with status 'deleted'
+        io.emit('order-status-update', { id: order.id, status: 'cancelled' });
+      } else {
+        oldOrder = await tx.order.update({
+          where: { id: order.id },
+          data: { total: order.total - oldOrderTotalReduced },
+          include: { table: true, items: { include: { menuItem: true } } }
+        });
+        io.emit('order-status-update', oldOrder);
+      }
+
+      io.emit('new-order', createdOrder);
+    });
+
+    res.json({ message: 'Tách bàn thành công' });
+  } catch (error) {
+    console.error('Lỗi tách bàn:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // === API THANH TOÁN ===

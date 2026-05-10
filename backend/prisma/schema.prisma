@@ -12,6 +12,7 @@ model Table {
   id          Int           @id @default(autoincrement())
   name        String
   qrCode      String?
+  mergedWithId Int?
   orders      Order[]
   calls       CallRequest[]
   paymentReqs PaymentRequest[]

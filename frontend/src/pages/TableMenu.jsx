@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { CUSTOMER_API } from '../config/api';
 import './TableMenu.css';
@@ -391,6 +391,8 @@ export default function TableMenu() {
 
   const navigate = useNavigate();
   const { tableId: tableIdParam } = useParams();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role');
   const tableId = parseInt(tableIdParam, 10);
 
   // Debug log
@@ -525,7 +527,7 @@ export default function TableMenu() {
             <span>☎️ 0788606420</span>
             <span>📧 THTeam@gmail.com</span>
           </div>
-          <button onClick={() => navigate(-1)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>← Quay lại</button>
+          <button onClick={() => role === 'staff' ? navigate('/staff') : navigate(-1)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>← Quay lại</button>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { io } from 'socket.io-client';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { ADMIN_ORDERS_API, SOCKET_URL, API_BASE_URL, PAYMENT_REQUEST_API, STAFF_CALL_API } from '../config/api';
+import { MergeTableModal, SplitTableModal, UnmergeTableModal } from '../components/TableActionModals';
 
 export default function CashierPage({ initialTab = 'waiting' }) {
   const [orders, setOrders] = useState([]);
@@ -17,6 +18,9 @@ export default function CashierPage({ initialTab = 'waiting' }) {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [showMerge, setShowMerge] = useState(false);
+  const [showSplit, setShowSplit] = useState(false);
+  const [showUnmerge, setShowUnmerge] = useState(false);
   const qrRef = useRef();
 
   useEffect(() => {
@@ -457,7 +461,7 @@ export default function CashierPage({ initialTab = 'waiting' }) {
     <div style={{ padding: '24px', fontFamily: '"Times New Roman", Times, serif' }}>
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ margin: '0 0 16px 0', color: '#e85d04', fontSize: '2rem' }}>Quầy Thu Ngân</h1>
-        <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
           <button
             onClick={() => setActiveTab('waiting')}
             style={{
@@ -489,6 +493,55 @@ export default function CashierPage({ initialTab = 'waiting' }) {
             }}
           >
             Đã Thanh Toán ({completedOrders.length})
+          </button>
+          <button
+            onClick={() => setShowMerge(true)}
+            style={{
+              padding: '10px 18px',
+              border: 'none',
+              background: '#ffcc00',
+              color: '#000',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.95rem',
+              fontFamily: '"Times New Roman", Times, serif',
+              marginLeft: 'auto'
+            }}
+          >
+            Nhóm Bàn
+          </button>
+          <button
+            onClick={() => setShowUnmerge(true)}
+            style={{
+              padding: '10px 18px',
+              border: 'none',
+              background: '#ef4444',
+              color: '#fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.95rem',
+              fontFamily: '"Times New Roman", Times, serif',
+            }}
+          >
+            Hủy Nhóm Bàn
+          </button>
+          <button
+            onClick={() => setShowSplit(true)}
+            style={{
+              padding: '10px 18px',
+              border: 'none',
+              background: '#4caf50',
+              color: '#fff',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.95rem',
+              fontFamily: '"Times New Roman", Times, serif'
+            }}
+          >
+            Tách Món
           </button>
         </div>
       </div>
@@ -1020,6 +1073,10 @@ export default function CashierPage({ initialTab = 'waiting' }) {
           </div>
         </div>
       )}
+
+      <MergeTableModal isOpen={showMerge} onClose={() => setShowMerge(false)} onSuccess={() => { loadOrders(); loadPendingOrders(); }} />
+      <UnmergeTableModal isOpen={showUnmerge} onClose={() => setShowUnmerge(false)} onSuccess={() => { loadOrders(); loadPendingOrders(); }} />
+      <SplitTableModal isOpen={showSplit} onClose={() => setShowSplit(false)} onSuccess={() => { loadOrders(); loadPendingOrders(); }} />
     </div>
   );
 }

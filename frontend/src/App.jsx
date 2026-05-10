@@ -16,6 +16,8 @@ import ScanQR from './pages/ScanQR';
 import MenuManager from './pages/MenuManager';
 import QRCodeManager from './pages/QRCodeManager';
 import AdminMenuQR from './pages/AdminMenuQR';
+import DashboardApp from './pages/DashboardApp';
+import CashierPage from './pages/CashierPage';
 
 function ProtectedRoute({ isAuthenticated }) {
   const location = useLocation();
@@ -51,6 +53,16 @@ function App() {
           <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
           <Route path="/admin/menu" element={<Navigate to="/admin?tab=menuqr" replace />} />
           <Route path="/admin/qr" element={<Navigate to="/admin?tab=menuqr" replace />} />
+          <Route path="/staff" element={<DashboardApp />} />
+          <Route path="/cashier" element={
+            <div style={{minHeight: '100vh', background: '#f5f5f5'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', padding: '16px 24px', background: '#fff', borderBottom: '1px solid #ddd'}}>
+                <h2 style={{margin: 0, color: '#e85d04', fontFamily: '"Times New Roman", Times, serif'}}>Giao Diện Thu Ngân</h2>
+                <button onClick={handleLogout} style={{padding: '8px 16px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold'}}>Đăng xuất</button>
+              </div>
+              <CashierPage />
+            </div>
+          } />
         </Route>
 
         <Route path="/table/:tableId" element={<Home onLogin={handleLogin} />} />
