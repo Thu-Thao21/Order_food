@@ -16,7 +16,7 @@ export default function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'dashboard');
   const currentUser = (() => {
     try {
-      return JSON.parse(localStorage.getItem('user') || 'null');
+      return JSON.parse(sessionStorage.getItem('user') || 'null');
     } catch {
       return null;
     }

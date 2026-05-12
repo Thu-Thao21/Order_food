@@ -5,7 +5,7 @@ export default function AdminLayout({ children, onLogout, title = 'Admin' }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     onLogout?.();
     navigate('/login');
   };

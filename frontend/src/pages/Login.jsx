@@ -120,7 +120,7 @@ export default function Login({onLogin}) {
     setLoading(true);
     try {
       const res = await axios.post(AUTH_API.LOGIN, { username, password });
-      localStorage.setItem('user', JSON.stringify(res.data.user));
+      sessionStorage.setItem('user', JSON.stringify(res.data.user));
       const userRole = (res.data.user.role || '').toLowerCase();
 
       if (userRole === 'admin' || userRole === 'cashier') {

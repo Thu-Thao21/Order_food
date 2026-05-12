@@ -20,7 +20,7 @@ import StaffView from './pages/StaffView';
 
 const getStoredUser = () => {
   try {
-    return JSON.parse(localStorage.getItem('user') || 'null');
+    return JSON.parse(sessionStorage.getItem('user') || 'null');
   } catch {
     return null;
   }

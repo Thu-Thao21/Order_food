@@ -156,7 +156,7 @@ export default function KitchenView({ onLogout }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('user');
     onLogout?.();
     navigate('/login');
   };
