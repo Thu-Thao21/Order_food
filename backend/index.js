@@ -116,7 +116,7 @@ app.get('/api/table/:id/menu', async (req, res) => {
 // API Đặt món
 app.post('/api/order', async (req, res) => {
   try {
-    const { tableId, items, orderType } = req.body;
+    const { tableId, items, orderType, tableName } = req.body;
     const menuItems = await prisma.menuItem.findMany({
       where: { id: { in: items.map(i => i.menuItemId) } }
     });
@@ -129,6 +129,7 @@ app.post('/api/order', async (req, res) => {
     const order = await prisma.order.create({
       data: {
         tableId,
+        tableName: tableName || null,
         status: 'pending',
         orderType: orderType || 'dine-in',
         paymentStatus: 'unpaid',
