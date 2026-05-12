@@ -320,7 +320,7 @@ export default function Home({ onLogin }) {
   const [tableName, setTableName] = useState('');
   const tableDisplayName = tableName || (tableId ? `Bàn ${tableId}` : '');
   const tableLabelPayload = tableDisplayName || `Bàn ${tableId || ''}`;
-  
+
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -328,7 +328,7 @@ export default function Home({ onLogin }) {
   const [staffMessage, setStaffMessage] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(''); // 'cash', 'transfer', 'card'
-  
+
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('success');
 
@@ -395,9 +395,9 @@ export default function Home({ onLogin }) {
           tableName: tableLabelPayload
         })
       });
-      
+
       if (!response.ok) throw new Error('Failed to submit staff call');
-      
+
       console.log('Gọi nhân viên:', staffMessage);
       showToast('Yêu cầu gọi nhân viên đã được gửi!');
       setShowStaffModal(false);
@@ -413,7 +413,7 @@ export default function Home({ onLogin }) {
       showToast('Vui lòng chọn đánh giá!', 'error');
       return;
     }
-    
+
     try {
       const response = await fetch(RATING_API.CREATE, {
         method: 'POST',
@@ -425,9 +425,9 @@ export default function Home({ onLogin }) {
           note: tableLabelPayload
         })
       });
-      
+
       if (!response.ok) throw new Error('Failed to submit rating');
-      
+
       console.log('Đánh giá:', rating);
       showToast(`Cảm ơn bạn đã đánh giá ${rating} sao!`);
       setShowRatingModal(false);
@@ -443,7 +443,7 @@ export default function Home({ onLogin }) {
       showToast('Vui lòng chọn phương thức thanh toán!', 'error');
       return;
     }
-    
+
     try {
       const response = await fetch(PAYMENT_REQUEST_API.CREATE, {
         method: 'POST',
@@ -455,9 +455,9 @@ export default function Home({ onLogin }) {
           tableName: tableLabelPayload
         })
       });
-      
+
       if (!response.ok) throw new Error('Failed to submit payment request');
-      
+
       console.log('Gọi thanh toán:', { method: paymentMethod, note: paymentNote });
       showToast(`Yêu cầu thanh toán bằng ${paymentMethod === 'cash' ? 'tiền mặt' : paymentMethod === 'transfer' ? 'chuyển khoản' : 'quẹt thẻ'} đã được gửi!`);
       setShowPaymentModal(false);
@@ -498,7 +498,7 @@ export default function Home({ onLogin }) {
       <div style={{ background: '#e85d04', color: '#fff', padding: '10px 20px', fontSize: '0.85rem', textAlign: 'center' }}>
         ☎️ 0788606420 | 📧 THTeam@gmail.com
       </div>
-      
+
       {/* HEADER */}
       <div style={styles.header}>
         <div style={styles.headerContent}>
@@ -518,13 +518,13 @@ export default function Home({ onLogin }) {
           <h1 style={styles.heroTitle}>
             {tableId ? (
               <>
-                Xin chào quý khách tại<br/>
+                Xin chào quý khách tại<br />
                 <span style={{ color: '#ffea00', fontSize: '1.2em', textShadow: '0 2px 10px rgba(0,0,0,0.2)' }}>
                   {tableDisplayName}
                 </span>
               </>
             ) : (
-              <>Đặt Món Nhanh<br/> Chỉ Với Một Cú Quét!🍔🧁</>
+              <>Đặt Món Nhanh<br /> Chỉ Với Một Cú Quét!</>
             )}
           </h1>
           <p style={styles.heroSubtitle}>
@@ -533,7 +533,7 @@ export default function Home({ onLogin }) {
           <div style={{ ...styles.heroButtons, flexDirection: 'column', alignItems: 'center' }}>
             {tableId ? (
               <>
-                <Link 
+                <Link
                   to={`/table/${tableId}/menu`}
                   style={styles.primaryBtn}
                   onMouseEnter={(e) => handlePrimaryHover(e, true)}
@@ -541,7 +541,7 @@ export default function Home({ onLogin }) {
                 >
                   <Zap size={20} /> Đặt món ngay
                 </Link>
-                
+
                 {/* Quick Actions */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '16px', gap: '16px', width: '100%' }}>
                   <button
@@ -573,7 +573,7 @@ export default function Home({ onLogin }) {
                 </div>
               </>
             ) : (
-              <Link 
+              <Link
                 to="/login"
                 style={styles.primaryBtn}
                 onMouseEnter={(e) => handlePrimaryHover(e, true)}
@@ -588,7 +588,7 @@ export default function Home({ onLogin }) {
 
       {/* FEATURES */}
       <div style={styles.features}>
-        <div 
+        <div
           style={styles.featureCard}
           onMouseEnter={(e) => handleFeatureHover(e, true)}
           onMouseLeave={(e) => handleFeatureHover(e, false)}
@@ -597,10 +597,10 @@ export default function Home({ onLogin }) {
             <Zap size={28} />
           </div>
           <h3 style={styles.featureTitle}>Nhanh Chóng</h3>
-          <p style={styles.featureDesc}>Đặt món chỉ trong vài giây, không cần chờ đợi</p>
+          <p style={styles.featureDesc}>Đặt món chỉ trong vài giây, không chờ đợi</p>
         </div>
 
-        <div 
+        <div
           style={styles.featureCard}
           onMouseEnter={(e) => handleFeatureHover(e, true)}
           onMouseLeave={(e) => handleFeatureHover(e, false)}
@@ -612,7 +612,7 @@ export default function Home({ onLogin }) {
           <p style={styles.featureDesc}>Luôn sẵn sàng phục vụ bạn mọi lúc</p>
         </div>
 
-        <div 
+        <div
           style={styles.featureCard}
           onMouseEnter={(e) => handleFeatureHover(e, true)}
           onMouseLeave={(e) => handleFeatureHover(e, false)}
@@ -620,21 +620,10 @@ export default function Home({ onLogin }) {
           <div style={styles.featureIcon}>
             <ShoppingCart size={28} />
           </div>
-          <h3 style={styles.featureTitle}>500+ Món Ăn</h3>
-          <p style={styles.featureDesc}>Lựa chọn đa dạng, phong phú cho mọi khẩu vị</p>
+          <h3 style={styles.featureTitle}>Đa Dạng Món Ăn</h3>
+          <p style={styles.featureDesc}>Lựa chọn đa dạng, phong phú mọi khẩu vị</p>
         </div>
 
-        <div 
-          style={styles.featureCard}
-          onMouseEnter={(e) => handleFeatureHover(e, true)}
-          onMouseLeave={(e) => handleFeatureHover(e, false)}
-        >
-          <div style={styles.featureIcon}>
-            <Star size={28} />
-          </div>
-          <h3 style={styles.featureTitle}>Chất Lượng</h3>
-          <p style={styles.featureDesc}>Đảm bảo chất lượng tốt nhất cho khách hàng</p>
-        </div>
       </div>
 
       {/* FOOTER */}
@@ -731,9 +720,9 @@ export default function Home({ onLogin }) {
             <div style={{ marginBottom: '16px', padding: '10px 12px', borderRadius: '8px', background: '#f8fafc', color: '#e85d04', fontWeight: 700, textAlign: 'center' }}>
               {tableDisplayName ? `Bàn hiện tại: ${tableDisplayName}` : 'Bàn hiện tại: Không xác định'}
             </div>
-            
+
             <p style={{ textAlign: 'center', color: '#333', marginBottom: '16px', fontWeight: 600 }}>Chọn phương thức thanh toán:</p>
-            
+
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
                 onClick={() => setPaymentMethod('cash')}
@@ -752,7 +741,7 @@ export default function Home({ onLogin }) {
               >
                 💵 Tiền Mặt
               </button>
-              
+
               <button
                 onClick={() => setPaymentMethod('transfer')}
                 style={{
@@ -770,7 +759,7 @@ export default function Home({ onLogin }) {
               >
                 🏦 Chuyển Khoản
               </button>
-              
+
               <button
                 onClick={() => setPaymentMethod('card')}
                 style={{
@@ -789,7 +778,7 @@ export default function Home({ onLogin }) {
                 💳 Quẹt Thẻ
               </button>
             </div>
-            
+
             <textarea
               style={{ ...styles.modalInput, minHeight: '80px', fontFamily: 'inherit' }}
               placeholder="Ghi chú thêm (tùy chọn)..."
