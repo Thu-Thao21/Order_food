@@ -126,6 +126,9 @@ export default function Login({onLogin}) {
       if (userRole === 'admin' || userRole === 'cashier') {
         onLogin(res.data.user);
         navigate('/admin');
+      } else if (userRole === 'staff') {
+        onLogin(res.data.user);
+        navigate('/staff');
       } else {
         onLogin(res.data.user);
         navigate('/kitchen');

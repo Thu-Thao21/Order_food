@@ -16,6 +16,7 @@ import ScanQR from './pages/ScanQR';
 import MenuManager from './pages/MenuManager';
 import QRCodeManager from './pages/QRCodeManager';
 import AdminMenuQR from './pages/AdminMenuQR';
+import StaffView from './pages/StaffView';
 
 const getStoredUser = () => {
   try {
@@ -65,7 +66,7 @@ function App() {
               isAuthenticated={isAuthenticated}
               allowedRoles={['admin', 'cashier']}
               userRole={userRole}
-              fallbackRoute={['staff', 'kitchen'].includes(userRole) ? '/kitchen' : '/login'}
+              fallbackRoute={userRole === 'staff' ? '/staff' : userRole === 'kitchen' ? '/kitchen' : '/login'}
             />
           }
         >
@@ -78,13 +79,26 @@ function App() {
           element={
             <ProtectedRoute
               isAuthenticated={isAuthenticated}
-              allowedRoles={['admin', 'staff', 'kitchen']}
+              allowedRoles={['admin', 'kitchen']}
               userRole={userRole}
-              fallbackRoute={['cashier'].includes(userRole) ? '/admin' : '/login'}
+              fallbackRoute={userRole === 'staff' ? '/staff' : ['cashier'].includes(userRole) ? '/admin' : '/login'}
             />
           }
         >
           <Route path="/kitchen" element={<KitchenView onLogout={handleLogout} />} />
+        </Route>
+
+        <Route
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              allowedRoles={['admin', 'staff']}
+              userRole={userRole}
+              fallbackRoute={userRole === 'kitchen' ? '/kitchen' : ['cashier'].includes(userRole) ? '/admin' : '/login'}
+            />
+          }
+        >
+          <Route path="/staff" element={<StaffView onLogout={handleLogout} />} />
         </Route>
 
         <Route path="/table/:tableId" element={<Home onLogin={handleLogin} />} />
