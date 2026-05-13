@@ -10,7 +10,7 @@ services:
     plan: free               # Gói miễn phí
     rootDir: backend         # Thư mục chứa code backend
     buildCommand: npm install && npx prisma generate
-    startCommand: npx prisma migrate deploy && node prisma/seed.js && node index.js
+    startCommand: npx prisma db push --accept-data-loss && node prisma/seed.js && node index.js
     envVars:
       - key: NODE_ENV
         value: production
