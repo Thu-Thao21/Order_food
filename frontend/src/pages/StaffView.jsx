@@ -362,9 +362,9 @@ export default function StaffView({ onLogout }) {
     if (!selectedOrder) return;
     try {
       setLoadingAction('payment');
-      await axios.put(`${API_BASE_URL}/admin/order/${selectedOrder.id}/payment`, {
-        status: 'paid',
-        method: paymentMethod
+      await axios.put(`${API_BASE_URL}/orders/${selectedOrder.id}/payment`, {
+        paymentStatus: 'paid',
+        paymentMethod: paymentMethod
       });
       setWaitingPaymentOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
       setSelectedOrder(null);
@@ -592,11 +592,13 @@ export default function StaffView({ onLogout }) {
               {selectedOrder.items?.map((item, idx) => (
                 <div key={idx} style={styles.orderItem}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, color: '#0f0e2e' }}>{item.name}</div>
+                    <div style={{ fontWeight: 600, color: '#0f0e2e' }}>
+                      {item.menuItem?.name || item.name || 'Món ăn'}
+                    </div>
                     <div style={{ fontSize: '0.9rem', color: '#999' }}>x{item.quantity}</div>
                   </div>
                   <div style={{ fontWeight: 600, color: '#e85d04' }}>
-                    {(item.price * item.quantity).toLocaleString('vi-VN')} ₫
+                    {((item.menuItem?.price ?? item.price ?? 0) * item.quantity).toLocaleString('vi-VN')} ₫
                   </div>
                 </div>
               ))}
