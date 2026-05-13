@@ -9,23 +9,24 @@ async function main() {
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.callRequest.deleteMany();
+  await prisma.paymentRequest.deleteMany();
+  await prisma.staffCall.deleteMany();
   await prisma.user.deleteMany();
   await prisma.menuItem.deleteMany();
   await prisma.category.deleteMany();
   await prisma.table.deleteMany();
 
+  // Reset SQLite sequences
+  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='Table'`;
+  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='MenuItem'`;
+  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='Category'`;
+
   // ============ BÀNG =============
-  const tables = await Promise.all([
-    prisma.table.create({ data: { name: 'Bàn 1', qrCode: '1' } }),
-    prisma.table.create({ data: { name: 'Bàn 2', qrCode: '2' } }),
-    prisma.table.create({ data: { name: 'Bàn 3', qrCode: '3' } }),
-    prisma.table.create({ data: { name: 'Bàn 4', qrCode: '4' } }),
-    prisma.table.create({ data: { name: 'Bàn 5', qrCode: '5' } }),
-    prisma.table.create({ data: { name: 'Bàn 6', qrCode: '6' } }),
-    prisma.table.create({ data: { name: 'Bàn 7', qrCode: '7' } }),
-    prisma.table.create({ data: { name: 'Bàn 8', qrCode: '8' } }),
-    prisma.table.create({ data: { name: 'Bàn VIP', qrCode: 'vip' } }),
-  ]);
+  const tablePromises = [];
+  for (let i = 1; i <= 20; i++) {
+    tablePromises.push(prisma.table.create({ data: { id: i, name: `Bàn ${i}`, qrCode: `${i}` } }));
+  }
+  const tables = await Promise.all(tablePromises);
   console.log(`✓ Đã tạo ${tables.length} bàn.`);
 
   // ============ DANH MỤC =============

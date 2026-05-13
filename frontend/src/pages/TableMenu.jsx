@@ -488,11 +488,14 @@ export default function TableMenu() {
       return;
     }
 
+    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+
     const payload = {
       tableId: tableId,
       tableName: tableName || (tableId ? `Bàn ${tableId}` : ''),
       orderType: orderType,
-      items: cart.map((entry) => ({ menuItemId: entry.menuItem.id, quantity: entry.quantity, note: entry.note || '' }))
+      items: cart.map((entry) => ({ menuItemId: entry.menuItem.id, quantity: entry.quantity, note: entry.note || '' })),
+      userId: user.id || null
     };
 
     console.log('Gửi order:', payload);

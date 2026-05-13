@@ -47,6 +47,8 @@ model Order {
   paymentStatus   String      @default("unpaid") // unpaid, paid, cancelled
   paymentMethod   String?     // cash, qr_code, card
   total           Float
+  createdBy       Int?        // User ID của nhân viên tạo order
+  createdByUser   User?       @relation(fields: [createdBy], references: [id], onDelete: SetNull)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]
@@ -111,4 +113,5 @@ model User {
   name      String
   role      String   @default("staff") // "admin", "cashier", "kitchen" or "staff"
   createdAt DateTime @default(now())
+  orders    Order[]  // Orders created by this user
 }

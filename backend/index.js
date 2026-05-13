@@ -116,34 +116,56 @@ app.get('/api/table/:id/menu', async (req, res) => {
 // API Đặt món
 app.post('/api/order', async (req, res) => {
   try {
-    const { tableId, items, orderType, tableName } = req.body;
+    const { tableId, items, orderType, tableName, userId } = req.body;
+    
+    if (!items || items.length === 0) {
+      return res.status(400).json({ error: 'Giỏ hàng không được trống' });
+    }
+
+    // Verify table exists
+    const table = await prisma.table.findUnique({ where: { id: parseInt(tableId) } });
+    if (!table) {
+      console.error(`❌ Bàn không tồn tại: ${tableId}`);
+      return res.status(400).json({ error: `Bàn ${tableId} không tồn tại` });
+    }
+
     const menuItems = await prisma.menuItem.findMany({
       where: { id: { in: items.map(i => i.menuItemId) } }
     });
 
     const total = items.reduce((sum, item) => {
       const menu = menuItems.find(m => m.id === item.menuItemId);
+      if (!menu) {
+        console.error(`❌ Không tìm thấy menu item ID: ${item.menuItemId}`);
+        return sum;
+      }
       return sum + (menu.price * item.quantity);
     }, 0);
 
+    if (total === 0) {
+      return res.status(400).json({ error: 'Không thể tính toán giá tiền. Vui lòng kiểm tra các món ăn.' });
+    }
+
     const order = await prisma.order.create({
       data: {
-        tableId,
-        tableName: tableName || null,
+        tableId: parseInt(tableId),
+        tableName: tableName || table.name,
         status: 'pending',
         orderType: orderType || 'dine-in',
         paymentStatus: 'unpaid',
         total,
-        items: { create: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note })) }
+        createdBy: userId ? parseInt(userId) : null,
+        items: { create: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note || '' })) }
       },
-      include: { items: { include: { menuItem: true } }, table: true }
+      include: { items: { include: { menuItem: true } }, table: true, createdByUser: { select: { id: true, name: true, role: true } } }
     });
 
-    console.log('✅ Đơn hàng mới:', order.id, 'từ bàn', order.table?.name);
+    console.log(`✅ Đơn hàng mới: #${order.id}, từ bàn ${order.table?.name}, Tạo bởi: ${order.createdByUser?.name || 'Khách'}, Tổng: ${total}₫`);
     // Thông báo cho Bếp + Admin qua Socket.io
     io.emit('new-order', order);
     res.status(201).json(order);
   } catch (error) {
+    console.error('❌ Lỗi khi tạo đơn hàng:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -183,7 +205,7 @@ app.get('/api/admin/orders/pending', async (req, res) => {
       where: { 
         status: { in: ['pending', 'Pending', 'Processing', 'processing', 'ready', 'Ready', 'cooking', 'Cooking'] }
       },
-      include: { table: true, items: { include: { menuItem: true } } },
+      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
       orderBy: { createdAt: 'asc' }
     });
     res.json(orders);
@@ -199,7 +221,7 @@ app.get('/api/admin/orders/waiting-payment', async (req, res) => {
       where: { 
         status: 'waiting_payment'
       },
-      include: { table: true, items: { include: { menuItem: true } } },
+      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
       orderBy: { createdAt: 'asc' }
     });
     res.json(orders);
@@ -215,7 +237,7 @@ app.get('/api/admin/orders/completed', async (req, res) => {
       where: { 
         status: 'completed'
       },
-      include: { table: true, items: { include: { menuItem: true } } },
+      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
       orderBy: { createdAt: 'desc' }
     });
     res.json(orders);

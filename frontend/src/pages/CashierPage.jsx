@@ -678,6 +678,10 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                           <div style={{ fontSize: '0.9rem', color: '#666' }}>
                             {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                           </div>
+                          <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
+                            Order: {order.createdByUser?.name || 'Không rõ'}
+                            {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
+                          </div>
                         </div>
                         <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
                           {(order.total || 0).toLocaleString('vi-VN')}đ
@@ -723,6 +727,10 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>
                           {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                         </div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
+                          Order: {order.createdByUser?.name || 'Không rõ'}
+                          {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
+                        </div>
                       </div>
                       <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
                         {order.total.toLocaleString('vi-VN')}đ
@@ -760,6 +768,13 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#666' }}>Giờ đặt:</span>
                   <span>{new Date(selectedOrder.createdAt).toLocaleTimeString('vi-VN')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                  <span style={{ color: '#666' }}>Order:</span>
+                  <span style={{ fontWeight: 'bold' }}>
+                    {selectedOrder.createdByUser?.name || 'Không rõ'}
+                    {selectedOrder.createdByUser?.role ? ` (${selectedOrder.createdByUser.role})` : ''}
+                  </span>
                 </div>
               </div>
 

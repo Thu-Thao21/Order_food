@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { LogOut, Bell, CreditCard, ChevronRight } from 'lucide-react';
-import { PAYMENT_REQUEST_API, STAFF_CALL_API, SOCKET_URL } from '../config/api';
+import { LogOut, Bell, CreditCard, ChevronRight, X, DollarSign, Check } from 'lucide-react';
+import { PAYMENT_REQUEST_API, STAFF_CALL_API, SOCKET_URL, API_BASE_URL } from '../config/api';
 
 const styles = {
   page: {
@@ -118,15 +118,110 @@ const styles = {
     borderRadius: '6px',
     fontWeight: 600,
     cursor: 'pointer'
+  },
+  tabContainer: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+    borderBottom: '2px solid #e2e8f0'
+  },
+  tabBtn: {
+    padding: '12px 16px',
+    background: 'none',
+    border: 'none',
+    borderBottom: '3px solid transparent',
+    cursor: 'pointer',
+    fontWeight: 600,
+    color: '#999',
+    fontSize: '0.95rem',
+    transition: 'all 0.2s'
+  },
+  tabBtnActive: {
+    color: '#e85d04',
+    borderBottomColor: '#e85d04'
+  },
+  modal: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'flex-end',
+    zIndex: 100
+  },
+  modalContent: {
+    background: '#fff',
+    width: '100%',
+    maxHeight: '90vh',
+    borderRadius: '16px 16px 0 0',
+    padding: '20px',
+    overflowY: 'auto'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+    paddingBottom: '12px',
+    borderBottom: '1px solid #eee'
+  },
+  paymentMethodGroup: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+    marginBottom: '16px'
+  },
+  paymentMethod: {
+    padding: '12px',
+    border: '2px solid #e2e8f0',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    textAlign: 'center',
+    fontWeight: 600,
+    fontSize: '0.9rem',
+    transition: 'all 0.2s'
+  },
+  paymentMethodActive: {
+    borderColor: '#e85d04',
+    background: '#fff3eb',
+    color: '#e85d04'
+  },
+  orderItem: {
+    background: '#f8fafc',
+    padding: '12px',
+    borderRadius: '8px',
+    marginBottom: '8px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  confirmBtn: {
+    width: '100%',
+    padding: '14px',
+    background: 'linear-gradient(135deg, #e85d04 0%, #d64803 100%)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: 700,
+    fontSize: '1rem',
+    cursor: 'pointer',
+    marginTop: '16px'
   }
 };
 
 export default function StaffView({ onLogout }) {
   const navigate = useNavigate();
   const [hoveredTable, setHoveredTable] = useState(null);
+  const [activeTab, setActiveTab] = useState('counter'); // counter, tables
   
   const [paymentRequests, setPaymentRequests] = useState([]);
   const [staffCalls, setStaffCalls] = useState([]);
+  const [waitingPaymentOrders, setWaitingPaymentOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loadingAction, setLoadingAction] = useState(null);
 
   // Generate 20 tables
@@ -151,6 +246,7 @@ export default function StaffView({ onLogout }) {
   useEffect(() => {
     loadPaymentRequests();
     loadStaffCalls();
+    loadWaitingPaymentOrders();
 
     const socket = io(SOCKET_URL, {
       reconnection: true,
@@ -187,9 +283,14 @@ export default function StaffView({ onLogout }) {
       );
     });
 
+    socket.on('new-order', (newOrder) => {
+      setWaitingPaymentOrders((prev) => [newOrder, ...prev]);
+    });
+
     const interval = setInterval(() => {
       loadPaymentRequests();
       loadStaffCalls();
+      loadWaitingPaymentOrders();
     }, 5000);
 
     return () => {
@@ -198,6 +299,7 @@ export default function StaffView({ onLogout }) {
       socket.off('payment-request-updated');
       socket.off('staff-call-created');
       socket.off('staff-call-updated');
+      socket.off('new-order');
       socket.disconnect();
     };
   }, []);
@@ -217,6 +319,15 @@ export default function StaffView({ onLogout }) {
       setStaffCalls(response.data || []);
     } catch (error) {
       console.error('Error loading staff calls:', error);
+    }
+  };
+
+  const loadWaitingPaymentOrders = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/orders/waiting-payment`);
+      setWaitingPaymentOrders(response.data || []);
+    } catch (error) {
+      console.error('Error loading waiting payment orders:', error);
     }
   };
 
@@ -244,6 +355,26 @@ export default function StaffView({ onLogout }) {
     }
   };
 
+  const processPayment = async () => {
+    if (!selectedOrder) return;
+    try {
+      setLoadingAction('payment');
+      await axios.put(`${API_BASE_URL}/admin/order/${selectedOrder.id}/payment`, {
+        status: 'paid',
+        method: paymentMethod
+      });
+      setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+      setSelectedOrder(null);
+      setPaymentMethod('cash');
+      alert('Thanh toán thành công!');
+    } catch (error) {
+      alert('Lỗi thanh toán: ' + error.message);
+      console.error('Error processing payment:', error);
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
   const handleTableClick = (tableId) => {
     navigate(`/table/${tableId}/menu`);
   };
@@ -264,11 +395,33 @@ export default function StaffView({ onLogout }) {
       </div>
 
       <div style={styles.container}>
+        {/* Tab Navigation */}
+        <div style={styles.tabContainer}>
+          <button
+            style={{
+              ...styles.tabBtn,
+              ...(activeTab === 'counter' ? styles.tabBtnActive : {})
+            }}
+            onClick={() => setActiveTab('counter')}
+          >
+            💰 Quầy
+          </button>
+          <button
+            style={{
+              ...styles.tabBtn,
+              ...(activeTab === 'tables' ? styles.tabBtnActive : {})
+            }}
+            onClick={() => setActiveTab('tables')}
+          >
+            🪑 Chọn Bàn
+          </button>
+        </div>
+
         {/* Yêu cầu gọi nhân viên */}
-        {staffCalls.length > 0 && (
+        {activeTab === 'counter' && staffCalls.length > 0 && (
           <div style={{ ...styles.section, borderLeft: '4px solid #ff9100' }}>
             <h2 style={{ ...styles.sectionTitle, color: '#ff9100' }}>
-              <Bell size={20} /> Yêu Cầu Gọi Nhân Viên ({staffCalls.length})
+              <Bell size={20} /> Yêu Cầu Gọi ({staffCalls.length})
             </h2>
             <div style={styles.requestList}>
               {staffCalls.map(call => (
@@ -300,7 +453,7 @@ export default function StaffView({ onLogout }) {
         )}
 
         {/* Yêu cầu thanh toán */}
-        {paymentRequests.length > 0 && (
+        {activeTab === 'counter' && paymentRequests.length > 0 && (
           <div style={{ ...styles.section, borderLeft: '4px solid #e85d04' }}>
             <h2 style={styles.sectionTitle}>
               <CreditCard size={20} /> Yêu Cầu Thanh Toán ({paymentRequests.length})
@@ -337,7 +490,56 @@ export default function StaffView({ onLogout }) {
           </div>
         )}
 
+        {/* Danh sách đơn hàng chờ thanh toán */}
+        {activeTab === 'counter' && (
+          <>
+            {waitingPaymentOrders.length > 0 ? (
+              <div style={styles.section}>
+                <h2 style={styles.sectionTitle}>
+                  <DollarSign size={20} /> Đơn Hàng Chờ Thanh Toán ({waitingPaymentOrders.length})
+                </h2>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {waitingPaymentOrders.map(order => (
+                    <div 
+                      key={order.id} 
+                      style={{
+                        ...styles.requestItem,
+                        cursor: 'pointer',
+                        border: '1px solid #d4d4d4',
+                        background: '#fafafa'
+                      }}
+                      onClick={() => setSelectedOrder(order)}
+                    >
+                      <div style={styles.requestInfo}>
+                        <div style={{ fontWeight: 700, color: '#0f0e2e' }}>
+                          {order.tableName || `Bàn ${order.tableId}`}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                          Order: {order.createdByUser?.name || 'Không rõ'}
+                          {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
+                        </div>
+                        <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 600 }}>
+                          💰 {order.total?.toLocaleString('vi-VN')} ₫
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#999' }}>
+                          {order.items?.length || 0} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
+                        </div>
+                      </div>
+                      <ChevronRight size={20} color="#e85d04" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={styles.section}>
+                <p style={{ textAlign: 'center', color: '#999' }}>Không có công việc</p>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Danh sách bàn */}
+        {activeTab === 'tables' && (
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Chọn Bàn Để Order</h2>
           <div style={styles.tableGrid}>
@@ -358,7 +560,109 @@ export default function StaffView({ onLogout }) {
             ))}
           </div>
         </div>
+        )}
       </div>
+      {selectedOrder && (
+        <div style={styles.modal} onClick={() => setSelectedOrder(null)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
+                Thanh Toán - {selectedOrder.tableName || `Bàn ${selectedOrder.tableId}`}
+              </h3>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#999'
+                }}
+                onClick={() => setSelectedOrder(null)}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Order Items */}
+            <div style={{ marginBottom: '20px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#0f0e2e' }}>Chi Tiết Đơn:</h4>
+              {selectedOrder.items?.map((item, idx) => (
+                <div key={idx} style={styles.orderItem}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: '#0f0e2e' }}>{item.name}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#999' }}>x{item.quantity}</div>
+                  </div>
+                  <div style={{ fontWeight: 600, color: '#e85d04' }}>
+                    {(item.price * item.quantity).toLocaleString('vi-VN')} ₫
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Total */}
+            <div style={{
+              background: '#fff3eb',
+              padding: '16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontWeight: 600, color: '#0f0e2e' }}>Tổng cộng:</span>
+              <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#e85d04' }}>
+                {selectedOrder.total?.toLocaleString('vi-VN')} ₫
+              </span>
+            </div>
+
+            {/* Payment Methods */}
+            <h4 style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#0f0e2e' }}>Phương Thức Thanh Toán:</h4>
+            <div style={styles.paymentMethodGroup}>
+              <div
+                style={{
+                  ...styles.paymentMethod,
+                  ...(paymentMethod === 'cash' ? styles.paymentMethodActive : {})
+                }}
+                onClick={() => setPaymentMethod('cash')}
+              >
+                💵<div>Tiền Mặt</div>
+              </div>
+              <div
+                style={{
+                  ...styles.paymentMethod,
+                  ...(paymentMethod === 'transfer' ? styles.paymentMethodActive : {})
+                }}
+                onClick={() => setPaymentMethod('transfer')}
+              >
+                🏦<div>Chuyển Khoản</div>
+              </div>
+              <div
+                style={{
+                  ...styles.paymentMethod,
+                  ...(paymentMethod === 'card' ? styles.paymentMethodActive : {})
+                }}
+                onClick={() => setPaymentMethod('card')}
+              >
+                💳<div>Quẹt Thẻ</div>
+              </div>
+            </div>
+
+            {/* Confirm Button */}
+            <button
+              style={styles.confirmBtn}
+              onClick={processPayment}
+              disabled={loadingAction === 'payment'}
+            >
+              {loadingAction === 'payment' ? 'Đang xử lý...' : (
+                <>
+                  <Check size={20} style={{ marginRight: '8px' }} />
+                  Xác Nhận Thanh Toán
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

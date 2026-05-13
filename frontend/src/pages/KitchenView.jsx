@@ -388,6 +388,11 @@ export default function KitchenView({ onLogout }) {
                         <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
 
+                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                        Order: {order.createdByUser?.name || 'Không rõ'}
+                        {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
+                      </div>
+
                       <ul style={styles.items}>
                         {order.items.map((item) => (
                           <li key={item.id} style={{ ...styles.itemRow, background: itemRowBg, flexDirection: 'column', gap: '8px' }}>
@@ -449,6 +454,11 @@ export default function KitchenView({ onLogout }) {
                         </span>
                       </div>
                       <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                      Order: {order.createdByUser?.name || 'Không rõ'}
+                      {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
                     </div>
 
                     <ul style={styles.items}>
