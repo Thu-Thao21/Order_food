@@ -226,6 +226,15 @@ export default function StaffView({ onLogout }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loadingAction, setLoadingAction] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   // Generate 20 tables
   const tables = Array.from({ length: 20 }, (_, i) => i + 1);
@@ -364,12 +373,14 @@ export default function StaffView({ onLogout }) {
       setLoadingAction('payment');
       await axios.put(`${API_BASE_URL}/orders/${selectedOrder.id}/payment`, {
         paymentStatus: 'paid',
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        paidBy: currentUser?.id
       });
       setWaitingPaymentOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
       setSelectedOrder(null);
       setPaymentMethod('cash');
-      alert('Thanh toán thành công!');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       alert('Lỗi thanh toán: ' + error.message);
       console.error('Error processing payment:', error);
@@ -668,6 +679,57 @@ export default function StaffView({ onLogout }) {
           </div>
         </div>
       )}
+      {/* Success Notification Modal */}
+      {showSuccess && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(255, 255, 255, 0.9)',
+          zIndex: 200,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <div style={{
+            background: '#10b981',
+            color: '#fff',
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '20px',
+            boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+            animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          }}>
+            <Check size={48} strokeWidth={3} />
+          </div>
+          <h2 style={{ color: '#0f0e2e', margin: '0 0 8px 0', fontSize: '1.5rem', fontWeight: 800 }}>
+            Thành công!
+          </h2>
+          <p style={{ color: '#666', margin: 0, fontWeight: 500 }}>
+            Đơn hàng đã được thanh toán
+          </p>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes popIn {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

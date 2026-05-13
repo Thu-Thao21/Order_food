@@ -174,16 +174,22 @@ app.post('/api/order', async (req, res) => {
 app.put('/api/orders/:id/payment', async (req, res) => {
   try {
     const { id } = req.params;
-    const { paymentStatus, paymentMethod } = req.body;
+    const { paymentStatus, paymentMethod, paidBy } = req.body;
 
     const order = await prisma.order.update({
       where: { id: Number(id) },
       data: {
         paymentStatus: paymentStatus || 'paid',
         paymentMethod: paymentMethod || 'cash',
+        paidBy: paidBy ? Number(paidBy) : null,
         status: paymentStatus === 'paid' ? 'completed' : 'pending'
       },
-      include: { table: true, items: { include: { menuItem: true } } }
+      include: { 
+        table: true, 
+        items: { include: { menuItem: true } },
+        createdByUser: { select: { id: true, name: true, role: true } },
+        paidByUser: { select: { id: true, name: true, role: true } }
+      }
     });
 
     // Thông báo cập nhật
@@ -237,8 +243,13 @@ app.get('/api/admin/orders/completed', async (req, res) => {
       where: { 
         status: 'completed'
       },
-      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
-      orderBy: { createdAt: 'desc' }
+      include: { 
+        table: true, 
+        items: { include: { menuItem: true } }, 
+        createdByUser: { select: { id: true, name: true, role: true } },
+        paidByUser: { select: { id: true, name: true, role: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
     });
     res.json(orders);
   } catch (error) {

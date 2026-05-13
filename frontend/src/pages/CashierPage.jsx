@@ -729,8 +729,12 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                         </div>
                         <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
                           Order: {order.createdByUser?.name || 'Không rõ'}
-                          {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
                         </div>
+                        {order.paidByUser && (
+                          <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, marginTop: '2px' }}>
+                            Thanh toán: {order.paidByUser.name}
+                          </div>
+                        )}
                       </div>
                       <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
                         {order.total.toLocaleString('vi-VN')}đ
@@ -773,9 +777,16 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                   <span style={{ color: '#666' }}>Order:</span>
                   <span style={{ fontWeight: 'bold' }}>
                     {selectedOrder.createdByUser?.name || 'Không rõ'}
-                    {selectedOrder.createdByUser?.role ? ` (${selectedOrder.createdByUser.role})` : ''}
                   </span>
                 </div>
+                {selectedOrder.paidByUser && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <span style={{ color: '#666' }}>Thanh toán:</span>
+                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>
+                      {selectedOrder.paidByUser.name}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <h3 style={{ color: '#0f0e2e', fontSize: '1rem', margin: '12px 0 8px 0' }}>Các Món Ăn:</h3>
