@@ -9,8 +9,8 @@ services:
     region: singapore        # Chọn vùng gần Việt Nam nhất
     plan: free               # Gói miễn phí
     rootDir: backend         # Thư mục chứa code backend
-    buildCommand: npm install && npx prisma generate && npx prisma db push
-    startCommand: node index.js
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
