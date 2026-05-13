@@ -157,7 +157,10 @@ const styles = {
     maxHeight: '90vh',
     borderRadius: '16px 16px 0 0',
     padding: '20px',
-    overflowY: 'auto'
+    paddingBottom: 'calc(20px + env(safe-area-inset-bottom))',
+    overflowY: 'auto',
+    WebkitOverflowScrolling: 'touch',
+    boxSizing: 'border-box'
   },
   modalHeader: {
     display: 'flex',
@@ -363,7 +366,7 @@ export default function StaffView({ onLogout }) {
         status: 'paid',
         method: paymentMethod
       });
-      setOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
+      setWaitingPaymentOrders((prev) => prev.filter((o) => o.id !== selectedOrder.id));
       setSelectedOrder(null);
       setPaymentMethod('cash');
       alert('Thanh toán thành công!');
