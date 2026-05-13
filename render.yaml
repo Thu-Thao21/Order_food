@@ -9,15 +9,15 @@ services:
     region: singapore        # Chọn vùng gần Việt Nam nhất
     plan: free               # Gói miễn phí
     rootDir: backend         # Thư mục chứa code backend
-    buildCommand: npm install && npx prisma generate
-    startCommand: npm start
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && node prisma/seed.js
+    startCommand: node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:./prisma/dev.db
+        value: file:./prisma/prod.db
       - key: PORT
-        value: 3000
+        value: 10000
     healthCheckPath: /api/admin/tables
     autoDeploy: true         # Tự động deploy khi push code lên GitHub
 

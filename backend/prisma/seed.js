@@ -5,21 +5,12 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Bắt đầu seed data...');
 
-  // Xóa dữ liệu cũ nếu có
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.callRequest.deleteMany();
-  await prisma.paymentRequest.deleteMany();
-  await prisma.staffCall.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.menuItem.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.table.deleteMany();
-
-  // Reset SQLite sequences
-  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='Table'`;
-  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='MenuItem'`;
-  await prisma.$executeRaw`DELETE FROM sqlite_sequence WHERE name='Category'`;
+  // Kiểm tra xem đã có data chưa - nếu có bàn rồi thì bỏ qua seed
+  const existingTables = await prisma.table.count();
+  if (existingTables > 0) {
+    console.log(`✅ Database đã có dữ liệu (${existingTables} bàn). Bỏ qua seed.`);
+    return;
+  }
 
   // ============ BÀNG =============
   const tablePromises = [];
@@ -111,14 +102,10 @@ async function main() {
     { name: 'Hầu nướng', price: 32000, categoryId: catNuocUong.id, image: '/img/haunuong.jpg', description: 'Hầu nướng nước mắm' },
   ];
 
-  const createdMenuItems = await prisma.menuItem.createMany({ data: menuItems });
+  await prisma.menuItem.createMany({ data: menuItems });
   console.log(`✓ Đã tạo ${menuItems.length} món ăn.`);
-  
-  // Lấy lại danh sách món ăn từ DB  
-  const allMenuItems = await prisma.menuItem.findMany();
 
   // ============ USERS (NHÂN VIÊN) =============
-  // Hash passwords trước khi lưu
   const hashedPasswords = await Promise.all([
     bcrypt.hash('admin123', 10),
     bcrypt.hash('cashier123', 10),
@@ -129,95 +116,22 @@ async function main() {
 
   const users = await Promise.all([
     prisma.user.create({
-      data: {
-        username: 'admin',
-        password: hashedPasswords[0],
-        name: 'Admin',
-        role: 'admin'
-      }
+      data: { username: 'admin', password: hashedPasswords[0], name: 'Admin', role: 'admin' }
     }),
     prisma.user.create({
-      data: {
-        username: 'cashier1',
-        password: hashedPasswords[1],
-        name: 'Thu ngân 1',
-        role: 'cashier'
-      }
+      data: { username: 'cashier1', password: hashedPasswords[1], name: 'Thu ngân 1', role: 'cashier' }
     }),
     prisma.user.create({
-      data: {
-        username: 'staff1',
-        password: hashedPasswords[2],
-        name: 'Nhân viên 1',
-        role: 'staff'
-      }
+      data: { username: 'staff1', password: hashedPasswords[2], name: 'Nhân viên 1', role: 'staff' }
     }),
     prisma.user.create({
-      data: {
-        username: 'staff2',
-        password: hashedPasswords[3],
-        name: 'Nhân viên 2',
-        role: 'staff'
-      }
+      data: { username: 'staff2', password: hashedPasswords[3], name: 'Nhân viên 2', role: 'staff' }
     }),
     prisma.user.create({
-      data: {
-        username: 'kitchen',
-        password: hashedPasswords[4],
-        name: 'Bếp',
-        role: 'kitchen'
-      }
+      data: { username: 'kitchen', password: hashedPasswords[4], name: 'Bếp', role: 'kitchen' }
     }),
   ]);
   console.log(`✓ Đã tạo ${users.length} tài khoản nhân viên.`);
-
-  // ============ ĐƠN HÀNG MẪU =============
-  const orders = [];
-  console.log(`✓ Không tạo đơn mẫu - chỉ hiển thị khi khách đặt.`);
-
-  // ============ ITEM ĐƠN HÀNG =============
-  const orderItems = [];
-  console.log(`✓ Không tạo item đơn - sẽ có khi khách đặt.`);
-
-  // ============ YÊU CẦU GỌI PHỤC VỤ =============
-  const callRequests = await Promise.all([
-    prisma.callRequest.create({
-      data: {
-        tableId: tables[1].id,
-        type: 'Lấy thêm đá',
-        status: 'resolved'
-      }
-    }),
-    prisma.callRequest.create({
-      data: {
-        tableId: tables[4].id,
-        type: 'Lấy khăn',
-        status: 'pending'
-      }
-    }),
-    prisma.callRequest.create({
-      data: {
-        tableId: tables[0].id,
-        type: 'Thanh toán',
-        status: 'resolved'
-      }
-    }),
-    prisma.callRequest.create({
-      data: {
-        tableId: tables[3].id,
-        type: 'Mật khẩu Wifi',
-        status: 'pending'
-      }
-    }),
-    prisma.callRequest.create({
-      data: {
-        tableId: tables[5].id,
-        type: 'Khiếu nại',
-        status: 'pending'
-      }
-    }),
-  ]);
-  console.log(`✓ Đã tạo ${callRequests.length} yêu cầu gọi phục vụ.`);
 
   console.log('\n✅ Seed dữ liệu HOÀN TẤT!');
 }
@@ -225,7 +139,7 @@ async function main() {
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1); // eslint-disable-next-line no-undef
+    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

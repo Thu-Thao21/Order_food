@@ -285,7 +285,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'Không có file được tải lên' });
     }
-    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     res.json({ url: fileUrl, message: 'Tải ảnh thành công' });
   } catch (error) {
     res.status(500).json({ error: error.message });
