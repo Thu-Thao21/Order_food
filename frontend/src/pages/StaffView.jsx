@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { LogOut, Bell, CreditCard, ChevronRight, X, DollarSign, Check } from 'lucide-react';
-import { PAYMENT_REQUEST_API, STAFF_CALL_API, SOCKET_URL, API_BASE_URL } from '../config/api';
+import { LogOut, Bell, CreditCard, ChevronRight, X, DollarSign, Check, Trash2, PlusCircle, Scissors, ArrowRightLeft } from 'lucide-react';
+import { PAYMENT_REQUEST_API, STAFF_CALL_API, SOCKET_URL, API_BASE_URL, ADMIN_ORDERS_API, ADMIN_ORDER_EDIT_API } from '../config/api';
 
 const styles = {
   page: {
@@ -212,6 +212,80 @@ const styles = {
     fontSize: '1rem',
     cursor: 'pointer',
     marginTop: '16px'
+  },
+  editActionRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+    marginBottom: '20px'
+  },
+  editActionBtn: {
+    border: 'none',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  editPrimaryBtn: {
+    background: '#e85d04',
+    color: '#fff'
+  },
+  editSecondaryBtn: {
+    background: '#fff3eb',
+    color: '#e85d04',
+    border: '1px solid #f4c6aa'
+  },
+  editDangerBtn: {
+    background: '#fee2e2',
+    color: '#b91c1c',
+    border: '1px solid #fecaca'
+  },
+  orderSectionTitle: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '12px',
+    margin: '0 0 12px 0'
+  },
+  compactCard: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '14px',
+    background: '#fff'
+  },
+  compactCardButton: {
+    width: '100%',
+    textAlign: 'left',
+    border: '1px solid #ddd',
+    borderRadius: '12px',
+    background: '#fafafa',
+    padding: '14px',
+    cursor: 'pointer'
+  },
+  checkboxList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    margin: '12px 0 18px 0'
+  },
+  checkboxItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    border: '1px solid #eee',
+    borderRadius: '10px',
+    padding: '12px'
+  },
+  select: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '10px',
+    border: '1px solid #ddd',
+    fontSize: '1rem',
+    marginTop: '8px'
   }
 };
 
@@ -225,11 +299,18 @@ export default function StaffView({ onLogout }) {
   const [staffCalls, setStaffCalls] = useState([]);
   const [waitingPaymentOrders, setWaitingPaymentOrders] = useState([]);
   const [completedOrders, setCompletedOrders] = useState([]);
+  const [openOrders, setOpenOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loadingAction, setLoadingAction] = useState(null);
+  const [mutationLoading, setMutationLoading] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showSplitModal, setShowSplitModal] = useState(false);
+  const [splitDestinationTableId, setSplitDestinationTableId] = useState('');
+  const [splitItemIds, setSplitItemIds] = useState([]);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeSourceOrderId, setMergeSourceOrderId] = useState('');
 
   useEffect(() => {
     const storedUser = sessionStorage.getItem('user');
@@ -258,6 +339,7 @@ export default function StaffView({ onLogout }) {
 
   useEffect(() => {
     loadTables();
+    loadOpenOrders();
     loadPaymentRequests();
     loadStaffCalls();
     loadWaitingPaymentOrders();
@@ -299,6 +381,12 @@ export default function StaffView({ onLogout }) {
     });
 
     socket.on('new-order', (newOrder) => {
+      setOpenOrders((prev) => {
+        if (prev.find((o) => o.id === newOrder.id)) {
+          return prev.map((o) => (o.id === newOrder.id ? newOrder : o));
+        }
+        return [newOrder, ...prev];
+      });
       setWaitingPaymentOrders((prev) => {
         if (prev.find(o => o.id === newOrder.id)) {
           return prev.map(o => o.id === newOrder.id ? newOrder : o);
@@ -307,7 +395,20 @@ export default function StaffView({ onLogout }) {
       });
     });
 
+    socket.on('order-status-update', () => {
+      loadOpenOrders();
+      loadWaitingPaymentOrders();
+      loadCompletedOrders();
+    });
+
+    socket.on('order-updated', () => {
+      loadOpenOrders();
+      loadWaitingPaymentOrders();
+      loadCompletedOrders();
+    });
+
     socket.on('order-paid', (paidOrder) => {
+      setOpenOrders((prev) => prev.filter((o) => o.id !== paidOrder.id));
       setWaitingPaymentOrders((prev) => prev.filter((o) => o.id !== paidOrder.id));
       setCompletedOrders((prev) => {
         if (prev.find(o => o.id === paidOrder.id)) return prev;
@@ -329,6 +430,8 @@ export default function StaffView({ onLogout }) {
       socket.off('staff-call-created');
       socket.off('staff-call-updated');
       socket.off('new-order');
+      socket.off('order-status-update');
+      socket.off('order-updated');
       socket.off('order-paid');
       socket.disconnect();
     };
@@ -361,6 +464,15 @@ export default function StaffView({ onLogout }) {
     }
   };
 
+  const loadOpenOrders = async () => {
+    try {
+      const response = await axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS);
+      setOpenOrders(response.data || []);
+    } catch (error) {
+      console.error('Error loading open orders:', error);
+    }
+  };
+
   const loadWaitingPaymentOrders = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/admin/orders/waiting-payment`);
@@ -377,6 +489,17 @@ export default function StaffView({ onLogout }) {
     } catch (error) {
       console.error('Error loading completed orders:', error);
     }
+  };
+
+  const refreshOrders = async () => {
+    await Promise.all([
+      loadTables(),
+      loadOpenOrders(),
+      loadPaymentRequests(),
+      loadStaffCalls(),
+      loadWaitingPaymentOrders(),
+      loadCompletedOrders()
+    ]);
   };
 
   const updateStaffCallStatus = async (id, status) => {
@@ -425,8 +548,125 @@ export default function StaffView({ onLogout }) {
     }
   };
 
-  const handleTableClick = (tableId) => {
-    navigate(`/table/${tableId}/menu`);
+  const handleTableClick = (table) => {
+    const relatedOrder = [...openOrders, ...waitingPaymentOrders].find((order) => order.tableId === table.id);
+    if (table.status === 'occupied' && relatedOrder) {
+      setSelectedOrder(relatedOrder);
+      return;
+    }
+
+    navigate(`/table/${table.id}/menu`);
+  };
+
+  const canEditSelectedOrder = selectedOrder && selectedOrder.paymentStatus === 'unpaid' && selectedOrder.status !== 'completed';
+
+  const handleAddItemsToTable = () => {
+    if (!selectedOrder) return;
+    navigate(`/table/${selectedOrder.tableId}/menu`);
+  };
+
+  const handleDeleteOrderItem = async (itemId) => {
+    if (!selectedOrder || !canEditSelectedOrder) return;
+
+    if (!window.confirm('Xoá món này khỏi đơn?')) return;
+
+    try {
+      setMutationLoading(`delete-${itemId}`);
+      const response = await axios.delete(ADMIN_ORDER_EDIT_API.DELETE_ORDER_ITEM(selectedOrder.id, itemId));
+
+      if (response.data?.deleted) {
+        setSelectedOrder(null);
+      } else if (response.data?.order) {
+        setSelectedOrder(response.data.order);
+      }
+
+      await refreshOrders();
+    } catch (error) {
+      console.error('Error deleting order item:', error);
+      alert(error.response?.data?.error || 'Không thể xoá món');
+    } finally {
+      setMutationLoading(null);
+    }
+  };
+
+  const openSplitModal = () => {
+    if (!selectedOrder || !canEditSelectedOrder) return;
+    setSplitItemIds(selectedOrder.items?.map((item) => item.id) || []);
+    const nextTable = tables.find((table) => table.id !== selectedOrder.tableId);
+    setSplitDestinationTableId(nextTable ? String(nextTable.id) : '');
+    setShowSplitModal(true);
+  };
+
+  const toggleSplitItem = (itemId) => {
+    setSplitItemIds((prev) => (
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
+    ));
+  };
+
+  const handleSplitOrder = async () => {
+    if (!selectedOrder || !canEditSelectedOrder) return;
+    if (!splitDestinationTableId || splitItemIds.length === 0) {
+      alert('Chọn ít nhất một món và một bàn đích');
+      return;
+    }
+
+    try {
+      setMutationLoading('split');
+      const response = await axios.post(ADMIN_ORDER_EDIT_API.SPLIT_ORDER(selectedOrder.id), {
+        tableId: Number(splitDestinationTableId),
+        itemIds: splitItemIds
+      });
+
+      if (response.data?.sourceOrder) {
+        setSelectedOrder(response.data.sourceOrder);
+      } else {
+        setSelectedOrder(null);
+      }
+
+      setShowSplitModal(false);
+      await refreshOrders();
+    } catch (error) {
+      console.error('Error splitting order:', error);
+      alert(error.response?.data?.error || 'Không thể tách bàn');
+    } finally {
+      setMutationLoading(null);
+    }
+  };
+
+  const openMergeModal = () => {
+    if (!selectedOrder || !canEditSelectedOrder) return;
+    const candidate = [...openOrders, ...waitingPaymentOrders].find((order) => order.id !== selectedOrder.id);
+    setMergeSourceOrderId(candidate ? String(candidate.id) : '');
+    setShowMergeModal(true);
+  };
+
+  const handleMergeOrders = async () => {
+    if (!selectedOrder || !canEditSelectedOrder) return;
+    if (!mergeSourceOrderId) {
+      alert('Chọn một bàn/đơn khác để gộp');
+      return;
+    }
+
+    try {
+      setMutationLoading('merge');
+      const response = await axios.post(ADMIN_ORDER_EDIT_API.MERGE_ORDERS(selectedOrder.id), {
+        sourceOrderId: Number(mergeSourceOrderId)
+      });
+
+      if (response.data?.targetOrder) {
+        setSelectedOrder(response.data.targetOrder);
+      }
+
+      setShowMergeModal(false);
+      await refreshOrders();
+    } catch (error) {
+      console.error('Error merging orders:', error);
+      alert(error.response?.data?.error || 'Không thể gộp bàn');
+    } finally {
+      setMutationLoading(null);
+    }
   };
 
   return (
@@ -549,6 +789,34 @@ export default function StaffView({ onLogout }) {
           </div>
         )}
 
+        {activeTab === 'counter' && openOrders.length > 0 && (
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>
+              <ArrowRightLeft size={20} /> Đơn Đang Mở ({openOrders.length})
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {openOrders.map((order) => (
+                <button
+                  key={order.id}
+                  type="button"
+                  style={styles.compactCardButton}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div style={{ fontWeight: 800, color: '#0f0e2e', marginBottom: '6px' }}>
+                    {order.tableName || `Bàn ${order.tableId}`} - Đơn #{order.id}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                    {order.items?.length || 0} món • {order.createdByUser?.name || 'Không rõ'}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#e85d04', fontWeight: 700, marginTop: '6px' }}>
+                    💰 {order.total?.toLocaleString('vi-VN')} ₫
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Danh sách đơn hàng chờ thanh toán */}
         {activeTab === 'counter' && (
           <>
@@ -613,7 +881,7 @@ export default function StaffView({ onLogout }) {
                   }}
                   onMouseEnter={() => setHoveredTable(table.id)}
                   onMouseLeave={() => setHoveredTable(null)}
-                  onClick={() => handleTableClick(table.id)}
+                  onClick={() => handleTableClick(table)}
                 >
                   <span>{table.name || `Bàn ${table.id}`}</span>
                   {table.status === 'occupied' && (
@@ -715,12 +983,56 @@ export default function StaffView({ onLogout }) {
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#999' }}>x{item.quantity}</div>
                   </div>
+                  {canEditSelectedOrder && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrderItem(item.id)}
+                      disabled={mutationLoading === `delete-${item.id}`}
+                      style={{
+                        border: 'none',
+                        background: '#fee2e2',
+                        color: '#b91c1c',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        marginRight: '10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                   <div style={{ fontWeight: 600, color: '#e85d04' }}>
                     {((item.menuItem?.price ?? item.price ?? 0) * item.quantity).toLocaleString('vi-VN')} ₫
                   </div>
                 </div>
               ))}
             </div>
+
+            {canEditSelectedOrder && (
+              <div style={styles.editActionRow}>
+                <button
+                  type="button"
+                  style={{ ...styles.editActionBtn, ...styles.editPrimaryBtn }}
+                  onClick={handleAddItemsToTable}
+                >
+                  <PlusCircle size={16} /> Thêm món
+                </button>
+                <button
+                  type="button"
+                  style={{ ...styles.editActionBtn, ...styles.editSecondaryBtn }}
+                  onClick={openSplitModal}
+                >
+                  <Scissors size={16} /> Tách bàn
+                </button>
+                <button
+                  type="button"
+                  style={{ ...styles.editActionBtn, ...styles.editSecondaryBtn }}
+                  onClick={openMergeModal}
+                >
+                  <ArrowRightLeft size={16} /> Gộp bàn
+                </button>
+              </div>
+            )}
 
             {/* Total */}
             <div style={{
@@ -842,6 +1154,102 @@ export default function StaffView({ onLogout }) {
           <p style={{ color: '#666', margin: 0, fontWeight: 500 }}>
             Đơn hàng đã được thanh toán
           </p>
+        </div>
+      )}
+
+      {showSplitModal && selectedOrder && (
+        <div style={styles.modal} onClick={() => setShowSplitModal(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Tách bàn - {selectedOrder.tableName || `Bàn ${selectedOrder.tableId}`}</h3>
+              <button style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }} onClick={() => setShowSplitModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <p style={{ marginTop: 0, color: '#555' }}>Chọn món cần chuyển sang bàn khác. Bàn đích có sẵn đơn mở thì hệ thống sẽ gộp vào đơn đó.</p>
+
+            <div style={styles.checkboxList}>
+              {selectedOrder.items?.map((item) => (
+                <label key={item.id} style={styles.checkboxItem}>
+                  <input
+                    type="checkbox"
+                    checked={splitItemIds.includes(item.id)}
+                    onChange={() => toggleSplitItem(item.id)}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: '#0f0e2e' }}>{item.menuItem?.name || item.name || 'Món ăn'}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#666' }}>x{item.quantity} • {((item.menuItem?.price ?? item.price ?? 0) * item.quantity).toLocaleString('vi-VN')} ₫</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <label style={{ fontWeight: 700, color: '#0f0e2e' }}>
+              Bàn đích
+              <select
+                value={splitDestinationTableId}
+                onChange={(e) => setSplitDestinationTableId(e.target.value)}
+                style={styles.select}
+              >
+                <option value="">-- Chọn bàn --</option>
+                {tables
+                  .filter((table) => table.id !== selectedOrder.tableId)
+                  .map((table) => (
+                    <option key={table.id} value={table.id}>{table.name || `Bàn ${table.id}`}{table.status === 'occupied' ? ' (đang có khách)' : ''}</option>
+                  ))}
+              </select>
+            </label>
+
+            <button
+              style={styles.confirmBtn}
+              onClick={handleSplitOrder}
+              disabled={mutationLoading === 'split'}
+            >
+              {mutationLoading === 'split' ? 'Đang tách...' : 'Xác nhận tách bàn'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showMergeModal && selectedOrder && (
+        <div style={styles.modal} onClick={() => setShowMergeModal(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>Gộp bàn vào {selectedOrder.tableName || `Bàn ${selectedOrder.tableId}`}</h3>
+              <button style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#999' }} onClick={() => setShowMergeModal(false)}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <p style={{ marginTop: 0, color: '#555' }}>Chọn một đơn mở khác để gộp toàn bộ món vào đơn hiện tại.</p>
+
+            <label style={{ fontWeight: 700, color: '#0f0e2e' }}>
+              Đơn nguồn
+              <select
+                value={mergeSourceOrderId}
+                onChange={(e) => setMergeSourceOrderId(e.target.value)}
+                style={styles.select}
+              >
+                <option value="">-- Chọn đơn cần gộp --</option>
+                {[...openOrders, ...waitingPaymentOrders]
+                  .filter((order) => order.id !== selectedOrder.id)
+                  .map((order) => (
+                    <option key={order.id} value={order.id}>
+                      {order.tableName || `Bàn ${order.tableId}`} - Đơn #{order.id}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <button
+              style={styles.confirmBtn}
+              onClick={handleMergeOrders}
+              disabled={mutationLoading === 'merge'}
+            >
+              {mutationLoading === 'merge' ? 'Đang gộp...' : 'Xác nhận gộp bàn'}
+            </button>
+          </div>
         </div>
       )}
 

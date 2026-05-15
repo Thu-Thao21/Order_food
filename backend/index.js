@@ -17,6 +17,30 @@ const io = new Server(server, {
 
 const prisma = new PrismaClient();
 
+const ORDER_DETAIL_INCLUDE = {
+  items: {
+    include: {
+      menuItem: true,
+      addedByUser: { select: { name: true } }
+    }
+  },
+  table: true,
+  createdByUser: { select: { id: true, name: true, role: true } },
+  paidByUser: { select: { id: true, name: true, role: true } }
+};
+
+async function getOrderDetails(orderId) {
+  return prisma.order.findUnique({
+    where: { id: Number(orderId) },
+    include: ORDER_DETAIL_INCLUDE
+  });
+}
+
+// Helper: kiểm tra nếu tất cả items đã phục vụ
+function areAllItemsServed(items) {
+  return items && items.length > 0 && items.every(item => item.isServed === true);
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -167,11 +191,20 @@ app.post('/api/order', async (req, res) => {
         }))
       });
 
+      // Fetch updated items to check if all are served
+      const updatedItems = await prisma.orderItem.findMany({
+        where: { orderId: existingOrder.id },
+        include: { menuItem: true, addedByUser: { select: { name: true } } }
+      });
+
+      // Nếu order hiện tại đã waiting_payment và tất cả items cũ đều served, giữ waiting_payment; ngược lại đặt pending
+      const newStatus = existingOrder.status === 'waiting_payment' && areAllItemsServed(updatedItems) ? 'waiting_payment' : 'pending';
+
       order = await prisma.order.update({
         where: { id: existingOrder.id },
         data: {
           total: existingOrder.total + total,
-          status: 'pending' // Chuyển về pending để báo bếp có món mới
+          status: newStatus
         },
         include: { 
           items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, 
@@ -210,7 +243,15 @@ app.post('/api/order', async (req, res) => {
     }
 
     // Thông báo cho Bếp + Admin qua Socket.io
-    io.emit('new-order', order);
+    // Chỉ thông báo bếp nếu order có items chưa phục vụ (status pending)
+    // Nếu toàn items served (waiting_payment), chỉ cập nhật UI
+    if (order.status === 'pending') {
+      console.log(`📢 Socket emit: new-order (đơn #${order.id}, pending, bếp phải nấu)`);
+      io.emit('new-order', order); // Bếp có công việc mới
+    } else {
+      console.log(`📢 Socket emit: order-updated (đơn #${order.id}, waiting_payment, chỉ UI)`);
+      io.emit('order-updated', order); // Chỉ cập nhật UI
+    }
     res.status(201).json(order);
   } catch (error) {
     console.error('❌ Lỗi khi tạo đơn hàng:', error.message);
@@ -243,6 +284,270 @@ app.put('/api/orders/:id/payment', async (req, res) => {
     // Thông báo cập nhật
     io.emit('order-paid', order);
     res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Chỉnh sửa món trong đơn mở
+app.delete('/api/admin/orders/:orderId/items/:itemId', async (req, res) => {
+  try {
+    const orderId = Number(req.params.orderId);
+    const itemId = Number(req.params.itemId);
+
+    const order = await getOrderDetails(orderId);
+    if (!order) {
+      return res.status(404).json({ error: 'Đơn hàng không tồn tại' });
+    }
+
+    if (order.paymentStatus !== 'unpaid') {
+      return res.status(400).json({ error: 'Chỉ được chỉnh đơn chưa thanh toán' });
+    }
+
+    const targetItem = order.items.find((item) => item.id === itemId);
+    if (!targetItem) {
+      return res.status(404).json({ error: 'Món trong đơn không tồn tại' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.orderItem.delete({ where: { id: itemId } });
+
+      const remainingItems = await tx.orderItem.findMany({
+        where: { orderId },
+        include: { menuItem: true, addedByUser: { select: { name: true } } }
+      });
+
+      if (remainingItems.length === 0) {
+        await tx.order.delete({ where: { id: orderId } });
+        return { deleted: true, orderId, tableId: order.tableId };
+      }
+
+      // Kiểm tra nếu tất cả items còn lại đều served -> set waiting_payment
+      const newStatus = areAllItemsServed(remainingItems) ? 'waiting_payment' : order.status;
+
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          total: remainingItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0),
+          status: newStatus
+        },
+        include: ORDER_DETAIL_INCLUDE
+      });
+
+      return { deleted: false, order: updatedOrder };
+    });
+
+    io.emit('order-updated', result.deleted ? { id: orderId, deleted: true } : result.order);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/orders/:orderId/merge', async (req, res) => {
+  try {
+    const targetOrderId = Number(req.params.orderId);
+    const { sourceOrderId } = req.body;
+
+    if (!sourceOrderId) {
+      return res.status(400).json({ error: 'Thiếu sourceOrderId' });
+    }
+
+    const [targetOrder, sourceOrder] = await Promise.all([
+      getOrderDetails(targetOrderId),
+      getOrderDetails(sourceOrderId)
+    ]);
+
+    if (!targetOrder || !sourceOrder) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng cần gộp' });
+    }
+
+    if (targetOrder.paymentStatus !== 'unpaid' || sourceOrder.paymentStatus !== 'unpaid') {
+      return res.status(400).json({ error: 'Chỉ gộp các đơn chưa thanh toán' });
+    }
+
+    if (targetOrder.id === sourceOrder.id) {
+      return res.status(400).json({ error: 'Không thể gộp cùng một đơn hàng' });
+    }
+
+    const mergedOrder = await prisma.$transaction(async (tx) => {
+      // Copy items từ source sang target, preserve isServed
+      await tx.orderItem.createMany({
+        data: sourceOrder.items.map((item) => ({
+          orderId: targetOrder.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          note: item.note || '',
+          addedBy: item.addedBy || null,
+          isServed: item.isServed // Preserve served status
+        }))
+      });
+
+      // Fetch all items của target sau khi merge
+      const allMergedItems = await tx.orderItem.findMany({
+        where: { orderId: targetOrder.id },
+        include: { menuItem: true, addedByUser: { select: { name: true } } }
+      });
+
+      // Kiểm tra nếu tất cả items đều served -> set waiting_payment, không pending
+      const newStatus = areAllItemsServed(allMergedItems) ? 'waiting_payment' : targetOrder.status;
+
+      const updatedTarget = await tx.order.update({
+        where: { id: targetOrder.id },
+        data: {
+          total: targetOrder.total + sourceOrder.items.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0),
+          status: newStatus
+        },
+        include: ORDER_DETAIL_INCLUDE
+      });
+
+      await tx.order.delete({ where: { id: sourceOrder.id } });
+
+      return updatedTarget;
+    });
+
+    console.log(`📝 Socket emit: order-updated (merge, không gửi bếp)`);
+    io.emit('order-updated', mergedOrder);
+    res.json({ targetOrder: mergedOrder });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/admin/orders/:orderId/split', async (req, res) => {
+  try {
+    const sourceOrderId = Number(req.params.orderId);
+    const { tableId, itemIds } = req.body;
+
+    if (!tableId || !Array.isArray(itemIds) || itemIds.length === 0) {
+      return res.status(400).json({ error: 'Thiếu tableId hoặc danh sách món cần tách' });
+    }
+
+    const destinationTableId = Number(tableId);
+    const [sourceOrder, destinationTable] = await Promise.all([
+      getOrderDetails(sourceOrderId),
+      prisma.table.findUnique({ where: { id: destinationTableId } })
+    ]);
+
+    if (!sourceOrder) {
+      return res.status(404).json({ error: 'Đơn hàng không tồn tại' });
+    }
+
+    if (sourceOrder.paymentStatus !== 'unpaid') {
+      return res.status(400).json({ error: 'Chỉ được tách đơn chưa thanh toán' });
+    }
+
+    if (!destinationTable) {
+      return res.status(404).json({ error: 'Bàn đích không tồn tại' });
+    }
+
+    if (destinationTableId === sourceOrder.tableId) {
+      return res.status(400).json({ error: 'Vui lòng chọn bàn khác để tách' });
+    }
+
+    const selectedIds = itemIds.map(Number);
+    const selectedItems = sourceOrder.items.filter((item) => selectedIds.includes(item.id));
+    if (selectedItems.length === 0) {
+      return res.status(400).json({ error: 'Không có món nào được chọn để tách' });
+    }
+
+    const sourceRemainingItems = sourceOrder.items.filter((item) => !selectedIds.includes(item.id));
+    const destinationOpenOrder = await prisma.order.findFirst({
+      where: {
+        tableId: destinationTableId,
+        paymentStatus: 'unpaid',
+        status: { notIn: ['cancelled', 'completed'] }
+      }
+    });
+
+    const result = await prisma.$transaction(async (tx) => {
+      let targetOrder = destinationOpenOrder;
+
+      if (!targetOrder) {
+        targetOrder = await tx.order.create({
+          data: {
+            tableId: destinationTableId,
+            tableName: destinationTable.name,
+            status: 'pending',
+            orderType: sourceOrder.orderType,
+            paymentStatus: 'unpaid',
+            total: 0,
+            createdBy: sourceOrder.createdBy || null
+          },
+          include: ORDER_DETAIL_INCLUDE
+        });
+      }
+
+      // Copy items sang bàn đích, preserve isServed
+      await tx.orderItem.createMany({
+        data: selectedItems.map((item) => ({
+          orderId: targetOrder.id,
+          menuItemId: item.menuItemId,
+          quantity: item.quantity,
+          note: item.note || '',
+          addedBy: item.addedBy || null,
+          isServed: item.isServed // Preserve served status
+        }))
+      });
+
+      // Remove moved items from the source order
+      await tx.orderItem.deleteMany({ where: { id: { in: selectedIds } } });
+
+      // Re-fetch remaining items from DB to compute source totals reliably
+      const remainingDbItems = await tx.orderItem.findMany({
+        where: { orderId: sourceOrder.id },
+        include: { menuItem: true, addedByUser: { select: { name: true } } }
+      });
+
+      // Fetch all items của target sau khi split để kiểm tra status
+      const targetAllItems = await tx.orderItem.findMany({
+        where: { orderId: targetOrder.id },
+        include: { menuItem: true, addedByUser: { select: { name: true } } }
+      });
+
+      // Nếu tất cả items đích đều served -> waiting_payment, ngược lại pending
+      const targetStatus = areAllItemsServed(targetAllItems) ? 'waiting_payment' : 'pending';
+
+      const updatedTarget = await tx.order.update({
+        where: { id: targetOrder.id },
+        data: {
+          total: (destinationOpenOrder?.total || 0) + selectedItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0),
+          status: targetStatus
+        },
+        include: ORDER_DETAIL_INCLUDE
+      });
+
+      let updatedSource = null;
+      if (remainingDbItems.length === 0) {
+        await tx.order.delete({ where: { id: sourceOrder.id } });
+      } else {
+        updatedSource = await tx.order.update({
+          where: { id: sourceOrder.id },
+          data: {
+            total: remainingDbItems.reduce((sum, item) => sum + (item.menuItem.price * item.quantity), 0),
+            status: sourceOrder.status
+          },
+          include: ORDER_DETAIL_INCLUDE
+        });
+      }
+
+      return {
+        sourceOrder: updatedSource,
+        targetOrder: updatedTarget,
+        sourceDeleted: sourceRemainingItems.length === 0
+      };
+    });
+
+    // Chỉ emit 'order-updated' cho client (UI update), không emit 'new-order' cho bếp nếu order là waiting_payment
+    console.log(`📝 Socket emit: order-updated (split, không gửi bếp, chỉ update UI)`);
+    io.emit('order-updated', result.targetOrder);
+    if (result.sourceOrder) {
+      io.emit('order-updated', result.sourceOrder);
+    } else {
+      io.emit('order-updated', { id: sourceOrderId, deleted: true });
+    }
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

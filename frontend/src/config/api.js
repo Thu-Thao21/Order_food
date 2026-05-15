@@ -29,6 +29,12 @@ export const ADMIN_ORDERS_API = {
   UPDATE_PAYMENT: (orderId) => `${API_BASE_URL}/orders/${orderId}/payment`,
 };
 
+export const ADMIN_ORDER_EDIT_API = {
+  DELETE_ORDER_ITEM: (orderId, itemId) => `${API_BASE_URL}/admin/orders/${orderId}/items/${itemId}`,
+  MERGE_ORDERS: (orderId) => `${API_BASE_URL}/admin/orders/${orderId}/merge`,
+  SPLIT_ORDER: (orderId) => `${API_BASE_URL}/admin/orders/${orderId}/split`
+};
+
 // ===== ADMIN - MENU APIs (MenuManager, AdminDashboard) =====
 export const ADMIN_MENU_API = {
   GET_ALL_MENU: `${API_BASE_URL}/admin/menu`,
