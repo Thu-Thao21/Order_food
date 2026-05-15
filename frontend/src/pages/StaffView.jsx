@@ -219,10 +219,12 @@ export default function StaffView({ onLogout }) {
   const navigate = useNavigate();
   const [hoveredTable, setHoveredTable] = useState(null);
   const [activeTab, setActiveTab] = useState('counter'); // counter, tables
-  
+  const [tables, setTables] = useState([]);
+
   const [paymentRequests, setPaymentRequests] = useState([]);
   const [staffCalls, setStaffCalls] = useState([]);
   const [waitingPaymentOrders, setWaitingPaymentOrders] = useState([]);
+  const [completedOrders, setCompletedOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loadingAction, setLoadingAction] = useState(null);
@@ -236,8 +238,7 @@ export default function StaffView({ onLogout }) {
     }
   }, []);
 
-  // Generate 20 tables
-  const tables = Array.from({ length: 20 }, (_, i) => i + 1);
+  // Generate 20 tables (removed, fetched from API)
 
   const getTableLabel = (item) => {
     const fromDirectField = item.tableName || item.table?.name;
@@ -256,9 +257,11 @@ export default function StaffView({ onLogout }) {
   };
 
   useEffect(() => {
+    loadTables();
     loadPaymentRequests();
     loadStaffCalls();
     loadWaitingPaymentOrders();
+    loadCompletedOrders();
 
     const socket = io(SOCKET_URL, {
       reconnection: true,
@@ -296,13 +299,27 @@ export default function StaffView({ onLogout }) {
     });
 
     socket.on('new-order', (newOrder) => {
-      setWaitingPaymentOrders((prev) => [newOrder, ...prev]);
+      setWaitingPaymentOrders((prev) => {
+        if (prev.find(o => o.id === newOrder.id)) {
+          return prev.map(o => o.id === newOrder.id ? newOrder : o);
+        }
+        return [newOrder, ...prev];
+      });
+    });
+
+    socket.on('order-paid', (paidOrder) => {
+      setWaitingPaymentOrders((prev) => prev.filter((o) => o.id !== paidOrder.id));
+      setCompletedOrders((prev) => {
+        if (prev.find(o => o.id === paidOrder.id)) return prev;
+        return [paidOrder, ...prev];
+      });
     });
 
     const interval = setInterval(() => {
       loadPaymentRequests();
       loadStaffCalls();
       loadWaitingPaymentOrders();
+      loadCompletedOrders();
     }, 5000);
 
     return () => {
@@ -312,9 +329,19 @@ export default function StaffView({ onLogout }) {
       socket.off('staff-call-created');
       socket.off('staff-call-updated');
       socket.off('new-order');
+      socket.off('order-paid');
       socket.disconnect();
     };
   }, []);
+
+  const loadTables = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/tables`);
+      setTables(response.data || []);
+    } catch (error) {
+      console.error('Error loading tables:', error);
+    }
+  };
 
   const loadPaymentRequests = async () => {
     try {
@@ -340,6 +367,15 @@ export default function StaffView({ onLogout }) {
       setWaitingPaymentOrders(response.data || []);
     } catch (error) {
       console.error('Error loading waiting payment orders:', error);
+    }
+  };
+
+  const loadCompletedOrders = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/orders/completed`);
+      setCompletedOrders(response.data || []);
+    } catch (error) {
+      console.error('Error loading completed orders:', error);
     }
   };
 
@@ -397,7 +433,7 @@ export default function StaffView({ onLogout }) {
     <div style={styles.page}>
       <div style={styles.header}>
         <h1 style={styles.headerTitle}>Nhân Viên Phục Vụ</h1>
-        <button 
+        <button
           style={styles.logoutBtn}
           onClick={() => {
             if (onLogout) onLogout();
@@ -418,7 +454,7 @@ export default function StaffView({ onLogout }) {
             }}
             onClick={() => setActiveTab('counter')}
           >
-            💰 Quầy
+            Quầy
           </button>
           <button
             style={{
@@ -427,7 +463,16 @@ export default function StaffView({ onLogout }) {
             }}
             onClick={() => setActiveTab('tables')}
           >
-            🪑 Chọn Bàn
+            Chọn Bàn
+          </button>
+          <button
+            style={{
+              ...styles.tabBtn,
+              ...(activeTab === 'paid' ? styles.tabBtnActive : {})
+            }}
+            onClick={() => setActiveTab('paid')}
+          >
+            Đã thanh toán
           </button>
         </div>
 
@@ -453,7 +498,7 @@ export default function StaffView({ onLogout }) {
                       {new Date(call.createdAt).toLocaleTimeString('vi-VN')}
                     </div>
                   </div>
-                  <button 
+                  <button
                     style={styles.actionBtn}
                     onClick={() => updateStaffCallStatus(call.id, 'completed')}
                     disabled={loadingAction === call.id}
@@ -491,7 +536,7 @@ export default function StaffView({ onLogout }) {
                       {new Date(req.createdAt).toLocaleTimeString('vi-VN')}
                     </div>
                   </div>
-                  <button 
+                  <button
                     style={styles.actionBtn}
                     onClick={() => updatePaymentRequestStatus(req.id, 'completed')}
                     disabled={loadingAction === req.id}
@@ -514,8 +559,8 @@ export default function StaffView({ onLogout }) {
                 </h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {waitingPaymentOrders.map(order => (
-                    <div 
-                      key={order.id} 
+                    <div
+                      key={order.id}
                       style={{
                         ...styles.requestItem,
                         cursor: 'pointer',
@@ -554,34 +599,93 @@ export default function StaffView({ onLogout }) {
 
         {/* Danh sách bàn */}
         {activeTab === 'tables' && (
-        <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Chọn Bàn Để Order</h2>
-          <div style={styles.tableGrid}>
-            {tables.map(table => (
-              <button
-                key={table}
-                style={{
-                  ...styles.tableBtn,
-                  ...(hoveredTable === table ? styles.tableBtnHover : {})
-                }}
-                onMouseEnter={() => setHoveredTable(table)}
-                onMouseLeave={() => setHoveredTable(null)}
-                onClick={() => handleTableClick(table)}
-              >
-                <span>Bàn</span>
-                <span style={{ fontSize: '1.4rem', color: '#e85d04' }}>{table}</span>
-              </button>
-            ))}
+          <div style={styles.section}>
+            <h2 style={styles.sectionTitle}>Chọn Bàn Để Order</h2>
+            <div style={styles.tableGrid}>
+              {tables.map(table => (
+                <button
+                  key={table.id}
+                  style={{
+                    ...styles.tableBtn,
+                    ...(hoveredTable === table.id ? styles.tableBtnHover : {}),
+                    background: table.status === 'occupied' ? '#fff3eb' : styles.tableBtn.background,
+                    borderColor: table.status === 'occupied' ? '#e85d04' : styles.tableBtn.borderColor
+                  }}
+                  onMouseEnter={() => setHoveredTable(table.id)}
+                  onMouseLeave={() => setHoveredTable(null)}
+                  onClick={() => handleTableClick(table.id)}
+                >
+                  <span>{table.name || `Bàn ${table.id}`}</span>
+                  {table.status === 'occupied' && (
+                    <span style={{ fontSize: '0.8rem', color: '#e85d04', marginTop: '4px', fontWeight: 'bold' }}>
+                      Có khách
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
+
+      {/* Danh sách đơn hàng đã thanh toán */}
+      {activeTab === 'paid' && (
+        <div style={styles.section}>
+          <h2 style={styles.sectionTitle}>
+            <Check size={20} /> Đơn Đã Thanh Toán ({completedOrders.length})
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {completedOrders.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Không có đơn nào</div>
+            ) : (
+              completedOrders.map(order => (
+                <div
+                  key={`comp-${order.id}`}
+                  style={{
+                    ...styles.requestItem,
+                    cursor: 'pointer',
+                    border: '1px solid #d4d4d4',
+                    background: '#fafafa'
+                  }}
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <div style={styles.requestInfo}>
+                    <div style={{ fontWeight: 700, color: '#0f0e2e' }}>
+                      {order.tableName || `Bàn ${order.tableId}`} - Đơn #{order.id}
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
+                      Order: {order.createdByUser?.name || 'Không rõ'}
+                    </div>
+                    {order.paidByUser ? (
+                      <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
+                        Thanh toán: {order.paidByUser.name}
+                      </div>
+                    ) : order.paymentStatus === 'paid' ? (
+                      <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600 }}>
+                        Thanh toán: Quầy Thu Ngân
+                      </div>
+                    ) : null}
+                    <div style={{ fontSize: '0.9rem', color: '#10b981', fontWeight: 600 }}>
+                      💰 {order.total?.toLocaleString('vi-VN')} ₫
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#999' }}>
+                      {order.items?.length || 0} món • {new Date(order.createdAt).toLocaleTimeString('vi-VN')}
+                    </div>
+                  </div>
+                  <ChevronRight size={20} color="#10b981" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {selectedOrder && (
         <div style={styles.modal} onClick={() => setSelectedOrder(null)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
-                Thanh Toán - {selectedOrder.tableName || `Bàn ${selectedOrder.tableId}`}
+                {selectedOrder.status === 'completed' || selectedOrder.paymentStatus === 'paid' ? 'Chi Tiết Đơn' : 'Thanh Toán'} - {selectedOrder.tableName || `Bàn ${selectedOrder.tableId}`}
               </h3>
               <button
                 style={{
@@ -605,6 +709,9 @@ export default function StaffView({ onLogout }) {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, color: '#0f0e2e' }}>
                       {item.menuItem?.name || item.name || 'Món ăn'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '2px' }}>
+                      Order: {item.addedByUser ? item.addedByUser.name : 'Khách'}
                     </div>
                     <div style={{ fontSize: '0.9rem', color: '#999' }}>x{item.quantity}</div>
                   </div>
@@ -631,51 +738,69 @@ export default function StaffView({ onLogout }) {
               </span>
             </div>
 
-            {/* Payment Methods */}
-            <h4 style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#0f0e2e' }}>Phương Thức Thanh Toán:</h4>
-            <div style={styles.paymentMethodGroup}>
-              <div
-                style={{
-                  ...styles.paymentMethod,
-                  ...(paymentMethod === 'cash' ? styles.paymentMethodActive : {})
-                }}
-                onClick={() => setPaymentMethod('cash')}
-              >
-                💵<div>Tiền Mặt</div>
+            {selectedOrder.status === 'completed' || selectedOrder.paymentStatus === 'paid' ? (
+              <div style={{ background: '#e0f2fe', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                <Check size={32} color="#0284c7" style={{ marginBottom: '8px' }} />
+                <h4 style={{ margin: '0 0 8px 0', color: '#0284c7', fontSize: '1.1rem' }}>Đã Thanh Toán</h4>
+                <div style={{ fontSize: '0.9rem', color: '#0369a1', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span>Phương thức: <strong>{getMethodLabel(selectedOrder.paymentMethod)}</strong></span>
+                  {selectedOrder.paidByUser ? (
+                    <span>Người thu: <strong>{selectedOrder.paidByUser.name}</strong></span>
+                  ) : (
+                    <span>Người thu: <strong>Quầy Thu Ngân</strong></span>
+                  )}
+                  <span>Thời gian: {new Date(selectedOrder.updatedAt || selectedOrder.createdAt).toLocaleTimeString('vi-VN')}</span>
+                </div>
               </div>
-              <div
-                style={{
-                  ...styles.paymentMethod,
-                  ...(paymentMethod === 'transfer' ? styles.paymentMethodActive : {})
-                }}
-                onClick={() => setPaymentMethod('transfer')}
-              >
-                🏦<div>Chuyển Khoản</div>
-              </div>
-              <div
-                style={{
-                  ...styles.paymentMethod,
-                  ...(paymentMethod === 'card' ? styles.paymentMethodActive : {})
-                }}
-                onClick={() => setPaymentMethod('card')}
-              >
-                💳<div>Quẹt Thẻ</div>
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* Payment Methods */}
+                <h4 style={{ margin: '0 0 12px 0', fontWeight: 600, color: '#0f0e2e' }}>Phương Thức Thanh Toán:</h4>
+                <div style={styles.paymentMethodGroup}>
+                  <div
+                    style={{
+                      ...styles.paymentMethod,
+                      ...(paymentMethod === 'cash' ? styles.paymentMethodActive : {})
+                    }}
+                    onClick={() => setPaymentMethod('cash')}
+                  >
+                    💵<div>Tiền Mặt</div>
+                  </div>
+                  <div
+                    style={{
+                      ...styles.paymentMethod,
+                      ...(paymentMethod === 'transfer' ? styles.paymentMethodActive : {})
+                    }}
+                    onClick={() => setPaymentMethod('transfer')}
+                  >
+                    🏦<div>Chuyển Khoản</div>
+                  </div>
+                  <div
+                    style={{
+                      ...styles.paymentMethod,
+                      ...(paymentMethod === 'card' ? styles.paymentMethodActive : {})
+                    }}
+                    onClick={() => setPaymentMethod('card')}
+                  >
+                    💳<div>Quẹt Thẻ</div>
+                  </div>
+                </div>
 
-            {/* Confirm Button */}
-            <button
-              style={styles.confirmBtn}
-              onClick={processPayment}
-              disabled={loadingAction === 'payment'}
-            >
-              {loadingAction === 'payment' ? 'Đang xử lý...' : (
-                <>
-                  <Check size={20} style={{ marginRight: '8px' }} />
-                  Xác Nhận Thanh Toán
-                </>
-              )}
-            </button>
+                {/* Confirm Button */}
+                <button
+                  style={styles.confirmBtn}
+                  onClick={processPayment}
+                  disabled={loadingAction === 'payment'}
+                >
+                  {loadingAction === 'payment' ? 'Đang xử lý...' : (
+                    <>
+                      <Check size={20} style={{ marginRight: '8px' }} />
+                      Xác Nhận Thanh Toán
+                    </>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

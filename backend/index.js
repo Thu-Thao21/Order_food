@@ -146,21 +146,69 @@ app.post('/api/order', async (req, res) => {
       return res.status(400).json({ error: 'Không thể tính toán giá tiền. Vui lòng kiểm tra các món ăn.' });
     }
 
-    const order = await prisma.order.create({
-      data: {
+    const existingOrder = await prisma.order.findFirst({
+      where: {
         tableId: parseInt(tableId),
-        tableName: tableName || table.name,
-        status: 'pending',
-        orderType: orderType || 'dine-in',
         paymentStatus: 'unpaid',
-        total,
-        createdBy: userId ? parseInt(userId) : null,
-        items: { create: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity, note: i.note || '' })) }
-      },
-      include: { items: { include: { menuItem: true } }, table: true, createdByUser: { select: { id: true, name: true, role: true } } }
+        status: { notIn: ['cancelled', 'completed'] }
+      }
     });
 
-    console.log(`✅ Đơn hàng mới: #${order.id}, từ bàn ${order.table?.name}, Tạo bởi: ${order.createdByUser?.name || 'Khách'}, Tổng: ${total}₫`);
+    let order;
+    if (existingOrder) {
+      // Gộp bill: tạo OrderItem mới và update total
+      await prisma.orderItem.createMany({
+        data: items.map(i => ({
+          orderId: existingOrder.id,
+          menuItemId: i.menuItemId,
+          quantity: i.quantity,
+          note: i.note || '',
+          addedBy: userId ? parseInt(userId) : null
+        }))
+      });
+
+      order = await prisma.order.update({
+        where: { id: existingOrder.id },
+        data: {
+          total: existingOrder.total + total,
+          status: 'pending' // Chuyển về pending để báo bếp có món mới
+        },
+        include: { 
+          items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, 
+          table: true, 
+          createdByUser: { select: { id: true, name: true, role: true } } 
+        }
+      });
+      console.log(`✅ Đã gộp đơn hàng: #${order.id}, từ bàn ${order.table?.name}, Tổng mới: ${order.total}₫`);
+    } else {
+      // Tạo đơn mới
+      order = await prisma.order.create({
+        data: {
+          tableId: parseInt(tableId),
+          tableName: tableName || table.name,
+          status: 'pending',
+          orderType: orderType || 'dine-in',
+          paymentStatus: 'unpaid',
+          total,
+          createdBy: userId ? parseInt(userId) : null,
+          items: { 
+            create: items.map(i => ({ 
+              menuItemId: i.menuItemId, 
+              quantity: i.quantity, 
+              note: i.note || '',
+              addedBy: userId ? parseInt(userId) : null
+            })) 
+          }
+        },
+        include: { 
+          items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, 
+          table: true, 
+          createdByUser: { select: { id: true, name: true, role: true } } 
+        }
+      });
+      console.log(`✅ Đơn hàng mới: #${order.id}, từ bàn ${order.table?.name}, Tạo bởi: ${order.createdByUser?.name || 'Khách'}, Tổng: ${total}₫`);
+    }
+
     // Thông báo cho Bếp + Admin qua Socket.io
     io.emit('new-order', order);
     res.status(201).json(order);
@@ -211,7 +259,7 @@ app.get('/api/admin/orders/pending', async (req, res) => {
       where: { 
         status: { in: ['pending', 'Pending', 'Processing', 'processing', 'ready', 'Ready', 'cooking', 'Cooking'] }
       },
-      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
+      include: { table: true, items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, createdByUser: { select: { id: true, name: true, role: true } } },
       orderBy: { createdAt: 'asc' }
     });
     res.json(orders);
@@ -227,7 +275,7 @@ app.get('/api/admin/orders/waiting-payment', async (req, res) => {
       where: { 
         status: 'waiting_payment'
       },
-      include: { table: true, items: { include: { menuItem: true } }, createdByUser: { select: { id: true, name: true, role: true } } },
+      include: { table: true, items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, createdByUser: { select: { id: true, name: true, role: true } } },
       orderBy: { createdAt: 'asc' }
     });
     res.json(orders);
@@ -245,7 +293,7 @@ app.get('/api/admin/orders/completed', async (req, res) => {
       },
       include: { 
         table: true, 
-        items: { include: { menuItem: true } }, 
+        items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, 
         createdByUser: { select: { id: true, name: true, role: true } },
         paidByUser: { select: { id: true, name: true, role: true } }
       },
@@ -262,10 +310,17 @@ app.patch('/api/admin/order/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    if (status === 'waiting_payment' || status === 'completed') {
+      await prisma.orderItem.updateMany({
+        where: { orderId: Number(id), isServed: false },
+        data: { isServed: true }
+      });
+    }
+
     const order = await prisma.order.update({
       where: { id: Number(id) },
       data: { status },
-      include: { items: { include: { menuItem: true } }, table: true }
+      include: { items: { include: { menuItem: true, addedByUser: { select: { name: true } } } }, table: true, createdByUser: { select: { id: true, name: true, role: true } } }
     });
     
     // Broadcast status update to all clients
@@ -524,10 +579,27 @@ app.get('/api/admin/revenue/summary', async (req, res) => {
 
 // 6. Lấy danh sách bàn
 app.get('/api/admin/tables', async (req, res) => {
-  const tables = await prisma.table.findMany({
-    orderBy: { id: 'asc' }
-  });
-  res.json(tables);
+  try {
+    const tables = await prisma.table.findMany({
+      orderBy: { id: 'asc' },
+      include: {
+        orders: {
+          where: {
+            paymentStatus: 'unpaid',
+            status: { notIn: ['cancelled', 'completed'] }
+          },
+          select: { id: true }
+        }
+      }
+    });
+    const tablesWithStatus = tables.map(t => ({
+      ...t,
+      status: t.orders.length > 0 ? 'occupied' : 'empty'
+    }));
+    res.json(tablesWithStatus);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // === API THANH TOÁN ===
@@ -741,25 +813,56 @@ io.on('connection', (socket) => {
         return;
       }
 
-      // Tạo đơn hàng
-      const order = await prisma.order.create({
-        data: {
+      const existingOrder = await prisma.order.findFirst({
+        where: {
           tableId: Number(tableId),
-          status: 'pending',
           paymentStatus: 'unpaid',
-          total: Number(total),
-          items: {
-            create: items.map(item => ({
-              menuItemId: Number(item.menuItemId),
-              quantity: Number(item.quantity),
-              note: item.note || ''
-            }))
-          }
-        },
-        include: { table: true, items: { include: { menuItem: true } } }
+          status: { notIn: ['cancelled', 'completed'] }
+        }
       });
 
-      console.log(`✅ Đơn hàng mới từ bàn ${order.table?.name || tableId}: #${order.id}`);
+      let order;
+      if (existingOrder) {
+        await prisma.orderItem.createMany({
+          data: items.map(item => ({
+            orderId: existingOrder.id,
+            menuItemId: Number(item.menuItemId),
+            quantity: Number(item.quantity),
+            note: item.note || '',
+            addedBy: null // Khách order
+          }))
+        });
+
+        order = await prisma.order.update({
+          where: { id: existingOrder.id },
+          data: {
+            total: existingOrder.total + Number(total),
+            status: 'pending'
+          },
+          include: { table: true, items: { include: { menuItem: true, addedByUser: { select: { name: true } } } } }
+        });
+        console.log(`✅ Đã gộp đơn hàng từ bàn ${order.table?.name || tableId}: #${order.id}`);
+      } else {
+        // Tạo đơn hàng mới
+        order = await prisma.order.create({
+          data: {
+            tableId: Number(tableId),
+            status: 'pending',
+            paymentStatus: 'unpaid',
+            total: Number(total),
+            items: {
+              create: items.map(item => ({
+                menuItemId: Number(item.menuItemId),
+                quantity: Number(item.quantity),
+                note: item.note || '',
+                addedBy: null // Khách order
+              }))
+            }
+          },
+          include: { table: true, items: { include: { menuItem: true, addedByUser: { select: { name: true } } } } }
+        });
+        console.log(`✅ Đơn hàng mới từ bàn ${order.table?.name || tableId}: #${order.id}`);
+      }
 
       // Thông báo cho khách hàng rằng đơn đã được gửi
       socket.emit('order-placed-success', order.id);

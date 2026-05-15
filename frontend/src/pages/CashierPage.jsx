@@ -18,6 +18,8 @@ export default function CashierPage({ initialTab = 'waiting' }) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab);
   const qrRef = useRef();
+  
+  const currentUser = JSON.parse(sessionStorage.getItem('user') || '{}');
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -50,7 +52,18 @@ export default function CashierPage({ initialTab = 'waiting' }) {
     });
 
     socket.on('new-order', (newOrder) => {
-      setPendingOrders((prev) => [newOrder, ...prev].slice(0, 10));
+      setPendingOrders((prev) => {
+        if (prev.find(o => o.id === newOrder.id)) {
+          return prev.map(o => o.id === newOrder.id ? newOrder : o).slice(0, 10);
+        }
+        return [newOrder, ...prev].slice(0, 10);
+      });
+      setOrders((prev) => {
+        if (prev.find(o => o.id === newOrder.id)) {
+          return prev.map(o => o.id === newOrder.id ? newOrder : o);
+        }
+        return [newOrder, ...prev];
+      });
     });
 
     // Listen for order status updates
@@ -211,7 +224,8 @@ export default function CashierPage({ initialTab = 'waiting' }) {
       // Update payment status
       await axios.put(ADMIN_ORDERS_API.UPDATE_PAYMENT(orderId), {
         paymentMethod: method,
-        paymentStatus: 'paid'
+        paymentStatus: 'paid',
+        paidBy: currentUser?.id
       });
       // Update order status to completed
       await axios.patch(ADMIN_ORDERS_API.UPDATE_ORDER_STATUS(orderId), {
@@ -310,7 +324,7 @@ export default function CashierPage({ initialTab = 'waiting' }) {
           <div>
             ${order.items.map(item => `
               <div style="margin-bottom: 5px;">
-                <div class="item-name">${item.menuItem.name}</div>
+                <div class="item-name">${item.menuItem.name} <span style="font-size:12px;color:#666">(${item.addedByUser ? item.addedByUser.name : 'Khách'})</span></div>
                 <div class="item-details">
                   <div class="col-price">${item.menuItem.price.toLocaleString('vi-VN')}</div>
                   <div class="col-qty">${item.quantity}</div>
@@ -412,7 +426,12 @@ export default function CashierPage({ initialTab = 'waiting' }) {
         <div>
           {order.items.map(item => (
             <div key={item.id} style={{ marginBottom: '5px' }}>
-              <div style={{ paddingBottom: '2px' }}>{item.menuItem.name}</div>
+              <div style={{ paddingBottom: '2px' }}>
+                {item.menuItem.name} 
+                <span style={{ fontSize: '12px', color: '#666', marginLeft: '4px' }}>
+                  ({item.addedByUser ? item.addedByUser.name : 'Khách'})
+                </span>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div style={{ width: '40%', textAlign: 'left' }}>{item.menuItem.price.toLocaleString('vi-VN')}</div>
                 <div style={{ width: '20%', textAlign: 'center' }}>{item.quantity}</div>
@@ -678,10 +697,7 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                           <div style={{ fontSize: '0.9rem', color: '#666' }}>
                             {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
-                            Order: {order.createdByUser?.name || 'Không rõ'}
-                            {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
-                          </div>
+
                         </div>
                         <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
                           {(order.total || 0).toLocaleString('vi-VN')}đ
@@ -727,14 +743,16 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                         <div style={{ fontSize: '0.9rem', color: '#666' }}>
                           {order.orderType === 'dine-in' ? '🍽️ Ăn tại quán' : '🛍️ Mang về'}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginTop: '4px' }}>
-                          Order: {order.createdByUser?.name || 'Không rõ'}
-                        </div>
-                        {order.paidByUser && (
+
+                        {order.paidByUser ? (
                           <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, marginTop: '2px' }}>
                             Thanh toán: {order.paidByUser.name}
                           </div>
-                        )}
+                        ) : order.paymentStatus === 'paid' ? (
+                          <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 600, marginTop: '2px' }}>
+                            Thanh toán: Quầy Thu Ngân
+                          </div>
+                        ) : null}
                       </div>
                       <div style={{ textAlign: 'right', fontWeight: 'bold', color: '#e85d04', fontSize: '1.1rem' }}>
                         {order.total.toLocaleString('vi-VN')}đ
@@ -773,27 +791,32 @@ export default function CashierPage({ initialTab = 'waiting' }) {
                   <span style={{ color: '#666' }}>Giờ đặt:</span>
                   <span>{new Date(selectedOrder.createdAt).toLocaleTimeString('vi-VN')}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                  <span style={{ color: '#666' }}>Order:</span>
-                  <span style={{ fontWeight: 'bold' }}>
-                    {selectedOrder.createdByUser?.name || 'Không rõ'}
-                  </span>
-                </div>
-                {selectedOrder.paidByUser && (
+
+                {selectedOrder.paidByUser ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                     <span style={{ color: '#666' }}>Thanh toán:</span>
                     <span style={{ fontWeight: 'bold', color: '#10b981' }}>
                       {selectedOrder.paidByUser.name}
                     </span>
                   </div>
-                )}
+                ) : selectedOrder.paymentStatus === 'paid' ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                    <span style={{ color: '#666' }}>Thanh toán:</span>
+                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>
+                      Quầy Thu Ngân
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               <h3 style={{ color: '#0f0e2e', fontSize: '1rem', margin: '12px 0 8px 0' }}>Các Món Ăn:</h3>
               <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '16px', borderBottom: '1px solid #ddd', paddingBottom: '12px' }}>
                 {selectedOrder.items.map(item => (
                   <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: '0.95rem' }}>
-                    <span>{item.menuItem.name} x{item.quantity}</span>
+                    <div style={{ flex: 1 }}>
+                      <div>{item.menuItem.name} x{item.quantity}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#666' }}>Order: {item.addedByUser ? item.addedByUser.name : 'Khách'}</div>
+                    </div>
                     <span style={{ fontWeight: 'bold' }}>{(item.menuItem.price * item.quantity).toLocaleString('vi-VN')}đ</span>
                   </div>
                 ))}

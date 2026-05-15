@@ -64,6 +64,9 @@ model OrderItem {
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   quantity   Int
   note       String?
+  isServed   Boolean  @default(false)
+  addedBy    Int?     // User ID của người thêm món (nhân viên)
+  addedByUser User?   @relation("ItemAddedBy", fields: [addedBy], references: [id], onDelete: SetNull)
 }
 
 model CallRequest {
@@ -117,4 +120,5 @@ model User {
   createdAt DateTime @default(now())
   orders    Order[]  @relation("CreatedBy")
   paidOrders Order[] @relation("PaidBy")
+  addedItems OrderItem[] @relation("ItemAddedBy")
 }

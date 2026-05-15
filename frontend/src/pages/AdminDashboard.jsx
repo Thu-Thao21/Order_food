@@ -121,7 +121,12 @@ export default function AdminDashboard({ onLogout }) {
     // Listen for new orders
     socket.on('new-order', (newOrder) => {
       console.log('📦 Đơn mới nhận được (Admin):', newOrder);
-      setRecentOrders((prev) => [newOrder, ...prev].slice(0, 5));
+      setRecentOrders((prev) => {
+        if (prev.find(o => o.id === newOrder.id)) {
+          return prev.map(o => o.id === newOrder.id ? newOrder : o).slice(0, 5);
+        }
+        return [newOrder, ...prev].slice(0, 5);
+      });
         setActiveTables((prevTables) => {
         // Tính lại số bàn hoạt động (theo label: tableName hoặc parsed label)
         axios.get(ADMIN_ORDERS_API.GET_PENDING_ORDERS)

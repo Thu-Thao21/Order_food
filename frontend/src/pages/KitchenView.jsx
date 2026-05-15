@@ -240,7 +240,12 @@ export default function KitchenView({ onLogout }) {
     // Listen for new orders
     socket.on('new-order', (newOrder) => {
       console.log('📦 Đơn mới:', newOrder);
-      setOrders((prev) => [newOrder, ...prev]);
+      setOrders((prev) => {
+        if (prev.find(o => o.id === newOrder.id)) {
+          return prev.map(o => o.id === newOrder.id ? newOrder : o);
+        }
+        return [newOrder, ...prev];
+      });
     });
 
     // Listen for order status updates
@@ -367,8 +372,13 @@ export default function KitchenView({ onLogout }) {
                   Hiện tại không có đơn chờ.
                 </div>
               ) : (
-                orders.map((order) => (
-                  <article key={order.id} style={{ ...styles.card, background: cardBg, border: `1px solid ${cardBorder}` }}>
+                orders.filter(order => order.items.some(item => !item.isServed)).length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: textMuted, padding: '60px 14px', border: `1px solid ${cardBorder}`, borderRadius: '24px' }}>
+                    Hiện tại không có đơn chờ.
+                  </div>
+                ) : (
+                  orders.filter(order => order.items.some(item => !item.isServed)).map((order) => (
+                    <article key={order.id} style={{ ...styles.card, background: cardBg, border: `1px solid ${cardBorder}` }}>
                     <div style={styles.cardHeader}>
                       <div>
                         <div style={{ fontSize: '0.98rem', color: '#94a3b8' }}>{order.table?.name || `Bàn ${order.tableId}`}</div>
@@ -388,16 +398,18 @@ export default function KitchenView({ onLogout }) {
                         <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
 
-                      <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                        Order: {order.createdByUser?.name || 'Không rõ'}
-                        {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
-                      </div>
+
 
                       <ul style={styles.items}>
-                        {order.items.map((item) => (
+                        {order.items.filter(item => !item.isServed).map((item) => (
                           <li key={item.id} style={{ ...styles.itemRow, background: itemRowBg, flexDirection: 'column', gap: '8px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                              <p style={{ ...styles.itemName, color: textMain, margin: 0 }}>{item.menuItem?.name || 'Món không xác định'}</p>
+                              <div>
+                                <p style={{ ...styles.itemName, color: textMain, margin: 0 }}>{item.menuItem?.name || 'Món không xác định'}</p>
+                                <p style={{ fontSize: '0.85rem', color: '#666', margin: '4px 0 0' }}>
+                                  Order: {item.addedByUser ? item.addedByUser.name : 'Khách'}
+                                </p>
+                              </div>
                               <p style={{ ...styles.itemQty, margin: 0 }}>x{item.quantity}</p>
                             </div>
                             {item.note && (
@@ -420,9 +432,10 @@ export default function KitchenView({ onLogout }) {
                     </button>
                   </article>
                 ))
-              )}
-            </div>
-          )}
+              )
+            )}
+          </div>
+        )}
         </>
       )}
 
@@ -456,16 +469,18 @@ export default function KitchenView({ onLogout }) {
                       <span style={styles.time}>{new Date(order.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
-                    <div style={{ marginTop: '8px', fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>
-                      Order: {order.createdByUser?.name || 'Không rõ'}
-                      {order.createdByUser?.role ? ` (${order.createdByUser.role})` : ''}
-                    </div>
+
 
                     <ul style={styles.items}>
                       {order.items?.map((item) => (
                         <li key={`comp-item-${item.id}`} style={{ ...styles.itemRow, background: itemRowBg, flexDirection: 'column', gap: '8px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <p style={{ ...styles.itemName, color: textMain, margin: 0 }}>{item.menuItem?.name || 'Món không xác định'}</p>
+                            <div>
+                              <p style={{ ...styles.itemName, color: textMain, margin: 0 }}>{item.menuItem?.name || 'Món không xác định'}</p>
+                              <p style={{ fontSize: '0.85rem', color: '#666', margin: '4px 0 0' }}>
+                                Order: {item.addedByUser ? item.addedByUser.name : 'Khách'}
+                              </p>
+                            </div>
                             <p style={{ ...styles.itemQty, margin: 0 }}>x{item.quantity}</p>
                           </div>
                           {item.note && (

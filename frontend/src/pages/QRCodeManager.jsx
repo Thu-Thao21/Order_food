@@ -147,6 +147,13 @@ export default function QRCodeManager({ onLogout }) {
               <QRCode value={`${FRONTEND_URL}/table/${table.id}`} size={180} level="H" />
             </div>
             <h3 style={{ margin: '10px 0', fontSize: '1.3rem', color: '#e85d04', fontFamily: '"Times New Roman", Times, serif' }}>{selectedTables.has(table.id) ? '✓ ' : ''}{table.name || `Bàn ${table.id}`}</h3>
+            <div style={{ margin: '8px 0' }}>
+              {table.status === 'occupied' ? (
+                <span style={{ padding: '4px 8px', backgroundColor: '#fff3eb', color: '#e85d04', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold' }}>Đang có khách</span>
+              ) : (
+                <span style={{ padding: '4px 8px', backgroundColor: '#f0fdf4', color: '#16a34a', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 'bold' }}>Bàn trống</span>
+              )}
+            </div>
             <p style={{ margin: '8px 0', color: '#666', fontSize: '0.9rem', fontFamily: '"Times New Roman", Times, serif' }}>ID: {table.id}</p>
             <p style={{ margin: '8px 0', padding: '8px', backgroundColor: '#f9f9f9', borderRadius: '4px', color: '#999', fontSize: '0.85rem', fontFamily: '"Times New Roman", Times, serif' }}>{FRONTEND_URL}/table/{table.id}</p>
             <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
